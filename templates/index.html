@@ -6,36 +6,55 @@
     <title>ADHDIARY</title>
     <style>
         :root {
+            /* 라이트모드 변수 */
             --bg-color: #F2F2F2;
+            --card-bg: #FFFFFF;
+            --text-main: #444444;
+            --text-sub: #BBBBBB;
+            --border-color: #EEEEEE;
             --adhd-blue: #4A90E2;
+        }
+
+        body.dark-mode {
+            /* 다크모드 변수 */
+            --bg-color: #121212;
+            --card-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #888888;
+            --border-color: #333333;
         }
 
         body { 
             margin: 0; padding: 0; font-family: 'Apple SD Gothic Neo', sans-serif;
             background-color: var(--bg-color); display: flex; flex-direction: column;
             align-items: center; min-height: 100vh; overflow-x: hidden;
+            color: var(--text-main); transition: background-color 0.3s, color 0.3s;
         }
 
-        /* 로고 디자인: 알록달록 스타일 유지 */
+        /* 다크모드 토글 버튼 */
+        .dark-toggle {
+            position: fixed; top: 20px; right: 20px; width: 45px; height: 45px;
+            background: var(--card-bg); border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 3000; font-size: 20px;
+        }
+
         .logo { margin-top: 40px; font-size: 36px; font-weight: 900; letter-spacing: 5px; text-align: center; }
         .logo span:nth-child(1), .logo span:nth-child(2) { color: #E88385; }
         .logo span:nth-child(3), .logo span:nth-child(4) { color: #F9B252; }
         .logo span:nth-child(5), .logo span:nth-child(6) { color: #82C471; }
         .logo span:nth-child(7), .logo span:nth-child(8) { color: #5B9DED; }
 
-        /* 메인 콘텐츠 카드 */
         .main-card {
-            background: white; width: 90%; max-width: 380px; margin-top: 30px;
+            background: var(--card-bg); width: 90%; max-width: 380px; margin-top: 30px;
             border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
             display: flex; flex-direction: column; align-items: center; padding-bottom: 20px;
-            flex-grow: 1; margin-bottom: 80px;
+            flex-grow: 1; margin-bottom: 80px; transition: background 0.3s;
         }
 
-        /* 그리드: 이미지 비율에 맞춘 가로형 버튼 2열 */
         .grid-container {
             display: grid; grid-template-columns: 1fr 1fr;
-            gap: 12px; width: 90%; margin-top: 25px; position: relative;
-            min-height: 140px;
+            gap: 12px; width: 90%; margin-top: 25px; position: relative; min-height: 140px;
         }
 
         .category-btn {
@@ -46,46 +65,43 @@
         }
         .category-btn .icon { font-size: 24px; margin-right: 10px; }
 
-        /* 카테고리별 색상 */
         .btn-book { background-color: #82C471; }
         .btn-diet { background-color: #F9B252; }
         .btn-daily { background-color: #5B9DED; }
         .btn-food { background-color: #EF6C85; }
 
-        /* ADHD-MODE 버튼 */
         .adhd-mode-btn {
-            width: 180px; height: 70px; background-color: #4A90E2;
+            width: 180px; height: 70px; background-color: var(--adhd-blue);
             color: white; border-radius: 35px; border: none;
             font-size: 20px; font-weight: 900; margin-top: 40px;
             box-shadow: 0 6px 0 #357ABD; cursor: pointer; z-index: 2000;
         }
 
-        /* 최근 기록 섹션 */
         .record-section { width: 90%; margin-top: 40px; text-align: left; }
-        .record-section h3 { font-size: 12px; color: #bbb; letter-spacing: 1px; margin-bottom: 15px; }
+        .record-section h3 { font-size: 12px; color: var(--text-sub); letter-spacing: 1px; margin-bottom: 15px; }
         
         .record-card {
-            border-bottom: 1px solid #eee; padding: 15px 0;
+            border-bottom: 1px solid var(--border-color); padding: 15px 0;
             display: flex; justify-content: space-between; align-items: center; cursor: pointer;
         }
-        .record-info b { font-size: 15px; color: #444; }
-        .record-info p { font-size: 12px; color: #ccc; margin: 4px 0 0 0; }
+        .record-info b { font-size: 15px; color: var(--text-main); }
+        .record-info p { font-size: 12px; color: var(--text-sub); margin: 4px 0 0 0; }
 
-        /* 하단 네비게이션 바 */
         .bottom-nav {
-            width: 100%; height: 65px; background: white;
+            width: 100%; height: 65px; background: var(--card-bg);
             position: fixed; bottom: 0; display: flex;
             justify-content: space-around; align-items: center;
-            border-top: 1px solid #eee; font-size: 24px; color: #4A90E2; z-index: 1000;
+            border-top: 1px solid var(--border-color); font-size: 24px; color: var(--adhd-blue); z-index: 1000;
         }
 
-        /* 상세 보기 모달 */
-        .modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
-        .modal-content { background: white; margin: 25% auto; padding: 25px; width: 80%; max-width: 320px; border-radius: 25px; position: relative; }
+        .modal { display: none; position: fixed; z-index: 4000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); }
+        .modal-content { background: var(--card-bg); margin: 25% auto; padding: 25px; width: 80%; max-width: 320px; border-radius: 25px; position: relative; color: var(--text-main); }
         .delete-btn { background: #ff8a80; color: white; border: none; width: 100%; padding: 12px; border-radius: 12px; margin-top: 20px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
+
+    <div class="dark-toggle" onclick="toggleDarkMode()" id="darkBtn">🌙</div>
 
     <div class="logo">
         <span>A</span><span>D</span><span>H</span><span>D</span><span>I</span><span>A</span><span>R</span><span>Y</span>
@@ -117,30 +133,44 @@
                     <b>{{ record.title }}</b>
                     <p>{{ record.date }}</p>
                 </div>
-                <div style="color: #eee;">〉</div>
+                <div style="color: var(--text-sub);">〉</div>
             </div>
             {% endfor %}
         </div>
     </div>
 
     <div class="bottom-nav">
-        <div></div><div></div><div></div><div></div>
+        <div onclick="location.href='/'">🏠</div><div>📅</div><div>🔄</div><div>👤</div>
     </div>
 
     <div id="detailModal" class="modal">
         <div class="modal-content">
             <h2 id="modalTitle" style="margin:0; font-size:18px"></h2>
-            <p id="modalDate" style="color:#ccc; font-size:11px; margin-bottom:15px"></p>
-            <div id="modalMemo" style="font-size:14px; line-height:1.6; color:#555; border-top:1px solid #f5f5f5; padding-top:15px; min-height:80px"></div>
+            <p id="modalDate" style="color:var(--text-sub); font-size:11px; margin-bottom:15px"></p>
+            <div id="modalMemo" style="font-size:14px; line-height:1.6; border-top:1px solid var(--border-color); padding-top:15px; min-height:80px"></div>
             <form id="deleteForm" method="post">
                 <button type="submit" class="delete-btn">삭제하기</button>
             </form>
-            <button onclick="closeModal()" style="width:100%; margin-top:10px; border:none; background:none; color:#bbb; cursor:pointer">닫기</button>
+            <button onclick="closeModal()" style="width:100%; margin-top:10px; border:none; background:none; color:var(--text-sub); cursor:pointer">닫기</button>
         </div>
     </div>
 
     <script>
-        // 1. ADHD 모드 애니메이션 (모든 버튼 사방으로 튕기기)
+        // 1. 다크모드 로직
+        function toggleDarkMode() {
+            const body = document.body;
+            body.classList.toggle('dark-mode');
+            const isDark = body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDark);
+            document.getElementById('darkBtn').innerText = isDark ? '☀️' : '🌙';
+        }
+
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('darkBtn').innerText = '☀️';
+        }
+
+        // 2. ADHD 모드 애니메이션
         let isADHD = false;
         let animationId;
         const buttons = document.querySelectorAll('.category-btn');
@@ -158,11 +188,9 @@
                         y: rect.top,
                         width: rect.width,
                         height: rect.height,
-                        // 속도를 랜덤하게 설정하여 각자 다른 방향으로 날아감
                         dx: (Math.random() - 0.5) * 10,
                         dy: (Math.random() - 0.5) * 10
                     });
-
                     btn.style.width = rect.width + 'px';
                     btn.style.height = rect.height + 'px';
                     btn.style.position = 'fixed';
@@ -172,7 +200,7 @@
                 });
                 animate();
             } else {
-                location.reload(); // ADHD 해제 시 위치 복구
+                location.reload(); 
             }
         }
 
@@ -181,29 +209,21 @@
             particles.forEach(p => {
                 p.x += p.dx;
                 p.y += p.dy;
-
-                // 벽 충돌 체크
                 if (p.x <= 0 || p.x + p.width >= window.innerWidth) p.dx *= -1;
-                // 하단바 높이(65px) 고려하여 튕김
                 if (p.y <= 0 || p.y + p.height >= window.innerHeight - 65) p.dy *= -1;
-
                 p.el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0)`;
             });
             animationId = requestAnimationFrame(animate);
         }
 
-        // 2. 기록 상세 조회 및 삭제 로직
+        // 3. 모달 로직
         async function openModal(id, type) {
-            const url = `/${type}/${id}`;
             try {
-                const res = await fetch(url);
+                const res = await fetch(`/${type}/${id}`);
                 const data = await res.json();
-                
                 document.getElementById('modalTitle').innerText = data.title;
                 document.getElementById('modalDate').innerText = data.date;
                 document.getElementById('modalMemo').innerText = data.memo;
-                
-                // 타입에 따라 삭제 경로 설정 (delete_book, delete_diet 등)
                 document.getElementById('deleteForm').action = `/delete_${type}/${id}`;
                 document.getElementById('detailModal').style.display = "block";
             } catch (e) {
@@ -216,5 +236,4 @@
         }
     </script>
 </body>
-
 </html>
