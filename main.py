@@ -2,11 +2,11 @@ import os
 from fastapi import FastAPI, Request, Form, Depends, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, create_engine
+from sqlalchemy import Column, Integer, String, Text, create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session, relationship
+from sqlalchemy.orm import sessionmaker, Session
 
-# 1. DB 설정 (Railway Volume 대응)
+# 1. DB 및 영구 저장소 설정
 if os.path.exists("/data"):
     SQLALCHEMY_DATABASE_URL = "sqlite:////data/adhdiary.db"
 else:
@@ -21,13 +21,13 @@ class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
-    password = Column(String) # 실제 서비스 시에는 암호화 권장
+    password = Column(String)
 
 class BookRecord(Base):
     __tablename__ = "book_records"
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String); date = Column(String); memo = Column(Text)
-    owner_id = Column(Integer) # 작성자 식별자
+    owner_id = Column(Integer)
 
 class DietRecord(Base):
     __tablename__ = "diet_records"
@@ -52,23 +52,25 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# DB 세션 의존성
 def get_db():
     db = SessionLocal()
     try: yield db
     finally: db.close()
 
-# 로그인 여부 확인 함수
 def get_current_user(request: Request):
     return request.cookies.get("user_id")
 
-# 3. 인증 라우트 (회원가입/로그인)
+# 3. 인증 라우트 (로그인 유지 1년 설정)
+
 @app.get("/signup", response_class=HTMLResponse)
 async def signup_page(request: Request):
     return templates.TemplateResponse("signup.html", {"request": request})
 
 @app.post("/signup")
 async def signup(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
+    existing_user = db.query(User).filter(User.username == username).first()
+    if existing_user:
+        return RedirectResponse(url="/signup?error=exists", status_code=303)
     new_user = User(username=username, password=password)
     db.add(new_user); db.commit()
     return RedirectResponse(url="/login", status_code=303)
@@ -82,7 +84,15 @@ async def login(username: str = Form(...), password: str = Form(...), db: Sessio
     user = db.query(User).filter(User.username == username, User.password == password).first()
     if user:
         response = RedirectResponse(url="/", status_code=303)
-        response.set_cookie(key="user_id", value=str(user.id), httponly=True)
+        # 1년(365일) 유지 설정: 60 * 60 * 24 * 365
+        ONE_YEAR = 31536000
+        response.set_cookie(
+            key="user_id", 
+            value=str(user.id), 
+            httponly=True, 
+            max_age=ONE_YEAR, 
+            samesite="lax"
+        )
         return response
     return RedirectResponse(url="/login?error=true", status_code=303)
 
@@ -92,7 +102,8 @@ async def logout():
     response.delete_cookie("user_id")
     return response
 
-# 4. 메인 페이지 (본인 기록만 조회)
+# 4. 메인 다이어리 기능 (본인 데이터 필터링)
+
 @app.get("/", response_class=HTMLResponse)
 async def main_page(request: Request, db: Session = Depends(get_db), user_id=Depends(get_current_user)):
     if not user_id: return RedirectResponse(url="/login")
@@ -111,32 +122,39 @@ async def main_page(request: Request, db: Session = Depends(get_db), user_id=Dep
     all_records.sort(key=lambda x: x['date'], reverse=True)
     return templates.TemplateResponse("index.html", {"request": request, "records": all_records})
 
-# --- 저장 API (owner_id 포함) ---
+# --- 저장 API ---
+
 @app.post("/save_book")
 async def save_book(title: str = Form(...), date: str = Form(...), memo: str = Form(...), db: Session = Depends(get_db), user_id=Depends(get_current_user)):
+    if not user_id: return RedirectResponse(url="/login")
     db.add(BookRecord(title=title, date=date, memo=memo, owner_id=user_id)); db.commit()
     return RedirectResponse(url="/", status_code=303)
 
 @app.post("/save_diet")
 async def save_diet(weight: str = Form(...), meal: str = Form(...), memo: str = Form(...), date: str = Form(...), db: Session = Depends(get_db), user_id=Depends(get_current_user)):
+    if not user_id: return RedirectResponse(url="/login")
     db.add(DietRecord(weight=weight, meal=meal, memo=memo, date=date, owner_id=user_id)); db.commit()
     return RedirectResponse(url="/", status_code=303)
 
 @app.post("/save_daily")
 async def save_daily(emoji: str = Form(...), memo: str = Form(...), date: str = Form(...), db: Session = Depends(get_db), user_id=Depends(get_current_user)):
+    if not user_id: return RedirectResponse(url="/login")
     db.add(DailyRecord(emoji=emoji, memo=memo, date=date, owner_id=user_id)); db.commit()
     return RedirectResponse(url="/", status_code=303)
 
 @app.post("/save_food")
 async def save_food(place: str = Form(...), rating: str = Form(...), memo: str = Form(...), date: str = Form(...), db: Session = Depends(get_db), user_id=Depends(get_current_user)):
+    if not user_id: return RedirectResponse(url="/login")
     db.add(FoodRecord(place=place, rating=rating, memo=memo, date=date, owner_id=user_id)); db.commit()
     return RedirectResponse(url="/", status_code=303)
 
-# --- 조회, 삭제, 페이지 라우트는 기존 로직에 user_id 체크 추가하여 유지 ---
-@app.get("/{type}/{record_id}")
+# --- 상세 조회 및 삭제 ---
+
+@app.get("/view/{type}/{record_id}")
 async def get_record(type: str, record_id: int, db: Session = Depends(get_db), user_id=Depends(get_current_user)):
     model = {"book": BookRecord, "diet": DietRecord, "daily": DailyRecord, "food": FoodRecord}[type]
     r = db.query(model).filter(model.id == record_id, model.owner_id == user_id).first()
+    if not r: return {"error": "Unauthorized"}
     title = f"📖 {r.title}" if type == "book" else f"⚖️ {r.weight}kg" if type == "diet" else f"{r.emoji} 일상" if type == "daily" else f"🍴 {r.place}"
     return {"title": title, "date": r.date, "memo": r.memo}
 
@@ -147,22 +165,11 @@ async def delete_record(type: str, record_id: int, db: Session = Depends(get_db)
     if r: db.delete(r); db.commit()
     return RedirectResponse(url="/", status_code=303)
 
-@app.get("/book", response_class=HTMLResponse)
-async def book_page(request: Request, user_id=Depends(get_current_user)):
-    if not user_id: return RedirectResponse(url="/login")
-    return templates.TemplateResponse("book.html", {"request": request})
+# --- 각 카테고리 입력 페이지 라우트 ---
 
-@app.get("/diet", response_class=HTMLResponse)
-async def diet_page(request: Request, user_id=Depends(get_current_user)):
+@app.get("/{category_name}", response_class=HTMLResponse)
+async def category_pages(category_name: str, request: Request, user_id=Depends(get_current_user)):
     if not user_id: return RedirectResponse(url="/login")
-    return templates.TemplateResponse("diet.html", {"request": request})
-
-@app.get("/daily", response_class=HTMLResponse)
-async def daily_page(request: Request, user_id=Depends(get_current_user)):
-    if not user_id: return RedirectResponse(url="/login")
-    return templates.TemplateResponse("daily.html", {"request": request})
-
-@app.get("/food", response_class=HTMLResponse)
-async def food_page(request: Request, user_id=Depends(get_current_user)):
-    if not user_id: return RedirectResponse(url="/login")
-    return templates.TemplateResponse("food.html", {"request": request})
+    if category_name in ["book", "diet", "daily", "food"]:
+        return templates.TemplateResponse(f"{category_name}.html", {"request": request})
+    return RedirectResponse(url="/")
