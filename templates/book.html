@@ -3,41 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>책 기록</title>
+    <title>독서 기록 - ADHDIARY</title>
     <style>
-        body { margin: 0; background-color: white; font-family: 'Apple SD Gothic Neo', sans-serif; }
-        .header { padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
-        .content { padding: 20px; }
-        .input-group { margin-bottom: 20px; }
-        label { font-size: 12px; color: #888; display: block; margin-bottom: 5px; }
-        input, textarea { width: 100%; border: none; border-bottom: 1px solid #eee; padding: 10px 0; font-size: 16px; outline: none; }
-        textarea { height: 200px; border: 1px solid #eee; border-radius: 8px; padding: 10px; margin-top: 10px; }
-        .save-btn { color: #82C471; font-weight: bold; border: none; background: none; font-size: 16px; cursor: pointer; }
+        :root {
+            /* 라이트모드 변수 */
+            --bg-color: #F2F2F2;
+            --card-bg: #FFFFFF;
+            --text-main: #444444;
+            --text-sub: #BBBBBB;
+            --border-color: #EEEEEE;
+            --adhd-green: #82C471;
+        }
+
+        /* 다크모드 변수 */
+        body.dark-mode {
+            --bg-color: #121212;
+            --card-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #888888;
+            --border-color: #333333;
+        }
+
+        body { 
+            margin: 0; padding: 0; font-family: 'Apple SD Gothic Neo', sans-serif;
+            background-color: var(--bg-color); display: flex; flex-direction: column; align-items: center;
+            color: var(--text-main); transition: background-color 0.3s, color 0.3s;
+        }
+
+        .header { width: 90%; max-width: 400px; margin-top: 40px; display: flex; align-items: center; justify-content: space-between; }
+        .back-btn { text-decoration: none; color: var(--text-sub); font-size: 24px; font-weight: bold; }
+        .title { font-size: 24px; font-weight: 900; }
+
+        .form-card {
+            background: var(--card-bg); width: 90%; max-width: 380px; margin-top: 20px;
+            border-radius: 30px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            box-sizing: border-box; transition: background-color 0.3s;
+        }
+        
+        .input-label { font-size: 13px; color: var(--text-sub); font-weight: bold; margin-bottom: 8px; display: block; }
+
+        input, textarea {
+            width: 100%; padding: 15px; border-radius: 15px; border: 1px solid var(--border-color);
+            background: var(--bg-color); color: var(--text-main); font-size: 16px; 
+            margin-bottom: 20px; box-sizing: border-box; outline: none; font-family: inherit;
+            transition: border-color 0.2s, background-color 0.3s;
+        }
+        input:focus, textarea:focus { border-color: var(--adhd-green); }
+        
+        textarea { height: 180px; resize: none; }
+
+        .save-btn {
+            width: 100%; height: 60px; background-color: var(--adhd-green);
+            color: white; border-radius: 18px; border: none;
+            font-size: 18px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 5px 15px rgba(130, 196, 113, 0.3);
+        }
     </style>
 </head>
 <body>
-    <form action="/save_book" method="post" id="bookForm">
-        <div class="header">
-            <button type="button" onclick="history.back()" style="border:none; background:none; font-size:20px;">✕</button>
-            <div style="font-weight:bold;">책 기록</div>
-            <button type="submit" class="save-btn">저장</button>
-        </div>
-        <div class="content">
-            <div style="font-size: 40px; text-align: center; margin-bottom: 20px;">📖</div>
-            <div class="input-group">
-                <label>제목</label>
-                <input type="text" name="title" required placeholder="책 제목을 입력하세요">
-            </div>
-            <div class="input-group">
-                <label>날짜</label>
-                <input type="date" name="date" id="todayDate">
-            </div>
-            <div class="input-group">
-                <label>메모</label>
-                <textarea name="memo" placeholder="기억하고 싶은 내용을 적어주세요"></textarea>
-            </div>
-        </div>
-    </form>
-    <script>document.getElementById('todayDate').value = new Date().toISOString().substring(0, 10);</script>
+
+    <div class="header">
+        <a href="/" class="back-btn">✕</a>
+        <div class="title">독서 기록</div>
+        <div style="width: 24px;"></div>
+    </div>
+
+    <div class="form-card">
+        <form action="/save_book" method="post">
+            <label class="input-label">책 제목</label>
+            <input type="text" name="title" placeholder="읽고 있는 책의 제목은?" required>
+
+            <label class="input-label">날짜</label>
+            <input type="date" name="date" id="todayDate" required>
+
+            <label class="input-label">독서 메모 (인상 깊은 구절 등)</label>
+            <textarea name="memo" placeholder="어떤 내용이 기억에 남나요?"></textarea>
+
+            <button type="submit" class="save-btn">독서 기록 저장</button>
+        </form>
+    </div>
+
+    <script>
+        // 1. 다크모드 동기화
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+
+        // 2. 오늘 날짜 자동 설정
+        document.getElementById('todayDate').value = new Date().toISOString().substring(0, 10);
+    </script>
 </body>
 </html>
