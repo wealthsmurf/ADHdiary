@@ -1,42 +1,105 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>맛집 기록</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>맛집 기록 - ADHDIARY</title>
     <style>
-        body { margin: 0; font-family: 'Apple SD Gothic Neo', sans-serif; display: flex; justify-content: center; }
-        .container { width: 100%; max-width: 400px; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .save-btn { color: #EF6C85; font-weight: bold; border: none; background: none; font-size: 18px; cursor: pointer; }
-        input, select, textarea { width: 100%; border: none; border-bottom: 1px solid #eee; padding: 12px 0; font-size: 16px; margin-bottom: 20px; outline: none; }
-        textarea { height: 150px; border: 1px solid #eee; border-radius: 12px; padding: 15px; resize: none; }
+        :root {
+            /* 라이트모드 변수 */
+            --bg-color: #F2F2F2;
+            --card-bg: #FFFFFF;
+            --text-main: #444444;
+            --text-sub: #BBBBBB;
+            --border-color: #EEEEEE;
+            --adhd-pink: #EF6C85;
+        }
+
+        /* 다크모드 변수 */
+        body.dark-mode {
+            --bg-color: #121212;
+            --card-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #888888;
+            --border-color: #333333;
+        }
+
+        body { 
+            margin: 0; padding: 0; font-family: 'Apple SD Gothic Neo', sans-serif;
+            background-color: var(--bg-color); display: flex; flex-direction: column; align-items: center;
+            color: var(--text-main); transition: background-color 0.3s, color 0.3s;
+        }
+
+        .header { width: 90%; max-width: 400px; margin-top: 40px; display: flex; align-items: center; justify-content: space-between; }
+        .back-btn { text-decoration: none; color: var(--text-sub); font-size: 24px; font-weight: bold; }
+        .title { font-size: 24px; font-weight: 900; }
+
+        .form-card {
+            background: var(--card-bg); width: 90%; max-width: 380px; margin-top: 20px;
+            border-radius: 30px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            box-sizing: border-box; transition: background-color 0.3s;
+        }
+        
+        .input-label { font-size: 13px; color: var(--text-sub); font-weight: bold; margin-bottom: 8px; display: block; }
+
+        input, textarea, select {
+            width: 100%; padding: 15px; border-radius: 15px; border: 1px solid var(--border-color);
+            background: var(--bg-color); color: var(--text-main); font-size: 16px; 
+            margin-bottom: 20px; box-sizing: border-box; outline: none; font-family: inherit;
+            transition: border-color 0.2s, background-color 0.3s;
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--adhd-pink); }
+        
+        textarea { height: 120px; resize: none; }
+
+        .save-btn {
+            width: 100%; height: 60px; background-color: var(--adhd-pink);
+            color: white; border-radius: 18px; border: none;
+            font-size: 18px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 5px 15px rgba(239, 108, 133, 0.3);
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+
+    <div class="header">
+        <a href="/" class="back-btn">✕</a>
+        <div class="title">맛집 기록</div>
+        <div style="width: 24px;"></div>
+    </div>
+
+    <div class="form-card">
         <form action="/save_food" method="post">
-            <div class="header">
-                <button type="button" onclick="history.back()" style="border:none; background:none; font-size:24px">✕</button>
-                <div style="font-weight:bold">맛집 기록</div>
-                <button type="submit" class="save-btn">저장</button>
-            </div>
-            <div style="font-size:50px; text-align:center; margin-bottom:20px">🍴</div>
-            <label style="font-size:12px; color:#888">식당 이름</label>
+            <label class="input-label">식당 이름</label>
             <input type="text" name="place" placeholder="어디서 드셨나요?" required>
-            <label style="font-size:12px; color:#888">별점</label>
+
+            <label class="input-label">나의 평점</label>
             <select name="rating">
-                <option value="★★★★★">★★★★★ (최고)</option>
-                <option value="★★★★☆">★★★★☆ (맛있음)</option>
-                <option value="★★★☆☆">★★★☆☆ (평범)</option>
-                <option value="★★☆☆☆">★★☆☆☆ (그저렆)</option>
-                <option value="★☆☆☆☆">★☆☆☆☆ (다신안감)</option>
+                <option value="⭐⭐⭐⭐⭐">⭐⭐⭐⭐⭐ (인생 맛집)</option>
+                <option value="⭐⭐⭐⭐">⭐⭐⭐⭐ (또 갈래요)</option>
+                <option value="⭐⭐⭐">⭐⭐⭐ (무난해요)</option>
+                <option value="⭐⭐">⭐⭐ (그저 그래요)</option>
+                <option value="⭐">⭐ (실망이에요)</option>
             </select>
-            <label style="font-size:12px; color:#888">날짜</label>
-            <input type="date" name="date" id="foodDate">
-            <label style="font-size:12px; color:#888">메모</label>
-            <textarea name="memo" placeholder="추천 메뉴나 맛 후기를 남겨주세요"></textarea>
+
+            <label class="input-label">날짜</label>
+            <input type="date" name="date" id="todayDate" required>
+
+            <label class="input-label">맛 평가 메모</label>
+            <textarea name="memo" placeholder="추천 메뉴나 맛의 특징을 적어보세요."></textarea>
+
+            <button type="submit" class="save-btn">맛집 기록 저장</button>
         </form>
     </div>
-    <script>document.getElementById('foodDate').value = new Date().toISOString().substring(0, 10);</script>
+
+    <script>
+        // 1. 다크모드 동기화
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+
+        // 2. 오늘 날짜 자동 설정
+        document.getElementById('todayDate').value = new Date().toISOString().substring(0, 10);
+    </script>
 </body>
 </html>
