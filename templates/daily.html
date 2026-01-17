@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>일상 기록</title>
+    <style>
+        body { margin: 0; font-family: 'Apple SD Gothic Neo', sans-serif; background-color: white; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 400px; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .save-btn { color: #5B9DED; font-weight: bold; border: none; background: none; font-size: 18px; cursor: pointer; }
+        
+        /* 이모지 선택 영역 스타일 */
+        .emoji-select { display: flex; justify-content: space-around; margin-bottom: 25px; background: #f9f9f9; padding: 15px; border-radius: 20px; }
+        .emoji-item { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .emoji-btn { font-size: 32px; cursor: pointer; border: 2px solid transparent; border-radius: 50%; width: 55px; height: 55px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .emoji-label { font-size: 11px; color: #888; font-weight: bold; }
+        
+        /* 활성화 상태 (희노애락 각각의 색상 강조 가능) */
+        .emoji-btn.active { border-color: #5B9DED; background-color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transform: scale(1.1); }
+        
+        input, textarea { width: 100%; border: none; border-bottom: 1px solid #eee; padding: 10px 0; font-size: 16px; margin-bottom: 20px; outline: none; }
+        textarea { height: 250px; border: 1px solid #eee; border-radius: 12px; padding: 15px; resize: none; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <form action="/save_daily" method="post" id="dailyForm">
+            <div class="header">
+                <button type="button" onclick="history.back()" style="border:none; background:none; font-size:24px; cursor:pointer">✕</button>
+                <div style="font-weight:bold">일상 기록</div>
+                <button type="submit" class="save-btn">저장</button>
+            </div>
+            
+            <div class="emoji-select">
+                <div class="emoji-item">
+                    <span class="emoji-btn active" onclick="selectEmoji('😊')">😊</span>
+                    <span class="emoji-label">기쁨</span>
+                </div>
+                <div class="emoji-item">
+                    <span class="emoji-btn" onclick="selectEmoji('💢')">💢</span>
+                    <span class="emoji-label">노여움</span>
+                </div>
+                <div class="emoji-item">
+                    <span class="emoji-btn" onclick="selectEmoji('😢')">😢</span>
+                    <span class="emoji-label">슬픔</span>
+                </div>
+                <div class="emoji-item">
+                    <span class="emoji-btn" onclick="selectEmoji('😆')">😆</span>
+                    <span class="emoji-label">즐거움</span>
+                </div>
+            </div>
+            <input type="hidden" name="emoji" id="selectedEmoji" value="😊">
+
+            <label style="font-size:12px; color:#888">날짜</label>
+            <input type="date" name="date" id="dailyDate">
+
+            <label style="font-size:12px; color:#888">오늘의 이야기</label>
+            <textarea name="memo" placeholder="오늘 하루는 어떠셨나요? 마음껏 적어보세요."></textarea>
+        </form>
+    </div>
+
+    <script>
+        // 오늘 날짜 기본값 설정
+        document.getElementById('dailyDate').value = new Date().toISOString().substring(0, 10);
+
+        function selectEmoji(emoji) {
+            // hidden input에 값 저장
+            document.getElementById('selectedEmoji').value = emoji;
+            
+            // 모든 버튼에서 active 제거 후 클릭한 것에만 추가
+            const btns = document.querySelectorAll('.emoji-btn');
+            btns.forEach(btn => {
+                btn.classList.remove('active');
+                if(btn.innerText === emoji) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

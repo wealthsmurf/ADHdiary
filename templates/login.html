@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>비밀 다이어리 로그인</title>
+    <style>
+        body { margin: 0; font-family: 'Apple SD Gothic Neo', sans-serif; background-color: #f8f9fa; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-box { width: 90%; max-width: 350px; background: white; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; }
+        .logo { font-size: 24px; font-weight: bold; margin-bottom: 30px; color: #333; }
+        input { width: 100%; padding: 15px; margin-bottom: 15px; border: 1px solid #eee; border-radius: 10px; box-sizing: border-box; outline: none; }
+        .login-btn { width: 100%; padding: 15px; background: #5B9DED; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .error-msg { color: #ff6b6b; font-size: 13px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <div class="logo">🔒 비밀 다이어리</div>
+        <form action="/login" method="post">
+            <input type="text" name="username" placeholder="아이디" required>
+            <input type="password" name="password" placeholder="비밀번호" required>
+            <button type="submit" class="login-btn">입장하기</button>
+        </form>
+    </div>
+</body>
+</html>

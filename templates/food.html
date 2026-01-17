@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>맛집 기록</title>
+    <style>
+        body { margin: 0; font-family: 'Apple SD Gothic Neo', sans-serif; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 400px; padding: 20px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .save-btn { color: #EF6C85; font-weight: bold; border: none; background: none; font-size: 18px; cursor: pointer; }
+        input, select, textarea { width: 100%; border: none; border-bottom: 1px solid #eee; padding: 12px 0; font-size: 16px; margin-bottom: 20px; outline: none; }
+        textarea { height: 150px; border: 1px solid #eee; border-radius: 12px; padding: 15px; resize: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <form action="/save_food" method="post">
+            <div class="header">
+                <button type="button" onclick="history.back()" style="border:none; background:none; font-size:24px">✕</button>
+                <div style="font-weight:bold">맛집 기록</div>
+                <button type="submit" class="save-btn">저장</button>
+            </div>
+            <div style="font-size:50px; text-align:center; margin-bottom:20px">🍴</div>
+            <label style="font-size:12px; color:#888">식당 이름</label>
+            <input type="text" name="place" placeholder="어디서 드셨나요?" required>
+            <label style="font-size:12px; color:#888">별점</label>
+            <select name="rating">
+                <option value="★★★★★">★★★★★ (최고)</option>
+                <option value="★★★★☆">★★★★☆ (맛있음)</option>
+                <option value="★★★☆☆">★★★☆☆ (평범)</option>
+                <option value="★★☆☆☆">★★☆☆☆ (그저렆)</option>
+                <option value="★☆☆☆☆">★☆☆☆☆ (다신안감)</option>
+            </select>
+            <label style="font-size:12px; color:#888">날짜</label>
+            <input type="date" name="date" id="foodDate">
+            <label style="font-size:12px; color:#888">메모</label>
+            <textarea name="memo" placeholder="추천 메뉴나 맛 후기를 남겨주세요"></textarea>
+        </form>
+    </div>
+    <script>document.getElementById('foodDate').value = new Date().toISOString().substring(0, 10);</script>
+</body>
+</html>
