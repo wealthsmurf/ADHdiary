@@ -5,35 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>일상 기록 - ADHDIARY</title>
     <style>
-        :root { --bg-color: #F2F2F2; --adhd-blue: #5B9DED; }
+        :root {
+            /* 라이트모드 변수 */
+            --bg-color: #F2F2F2;
+            --card-bg: #FFFFFF;
+            --text-main: #444444;
+            --text-sub: #BBBBBB;
+            --border-color: #EEEEEE;
+            --adhd-blue: #5B9DED;
+        }
+
+        /* 다크모드 변수 - body.dark-mode 클래스가 있을 때 적용 */
+        body.dark-mode {
+            --bg-color: #121212;
+            --card-bg: #1E1E1E;
+            --text-main: #FFFFFF;
+            --text-sub: #888888;
+            --border-color: #333333;
+        }
+
         body { 
             margin: 0; padding: 0; font-family: 'Apple SD Gothic Neo', sans-serif;
             background-color: var(--bg-color); display: flex; flex-direction: column; align-items: center;
+            color: var(--text-main); transition: background-color 0.3s, color 0.3s;
         }
+
         .header { width: 90%; max-width: 400px; margin-top: 40px; display: flex; align-items: center; justify-content: space-between; }
-        .back-btn { text-decoration: none; color: #888; font-size: 20px; }
-        .title { font-size: 24px; font-weight: 900; color: #444; }
+        .back-btn { text-decoration: none; color: var(--text-sub); font-size: 24px; font-weight: bold; }
+        .title { font-size: 24px; font-weight: 900; }
 
         .form-card {
-            background: white; width: 90%; max-width: 380px; margin-top: 20px;
+            background: var(--card-bg); width: 90%; max-width: 380px; margin-top: 20px;
             border-radius: 30px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            box-sizing: border-box;
+            box-sizing: border-box; transition: background-color 0.3s;
         }
-        .input-label { font-size: 13px; color: #bbb; font-weight: bold; margin-bottom: 8px; display: block; }
         
-        /* 이모지 선택 영역 */
+        .input-label { font-size: 13px; color: var(--text-sub); font-weight: bold; margin-bottom: 8px; display: block; }
+        
+        /* 이모지 선택 버튼 영역 */
         .emoji-selection { display: flex; justify-content: space-between; margin-bottom: 15px; }
         .emoji-btn { 
-            font-size: 24px; background: #f9f9f9; border: 1px solid #eee; 
+            font-size: 24px; background: var(--bg-color); border: 1px solid var(--border-color); 
             border-radius: 12px; padding: 8px; cursor: pointer; transition: 0.2s;
         }
-        .emoji-btn:hover { background: #eef5ff; transform: scale(1.1); }
-        .emoji-btn.active { border-color: var(--adhd-blue); background: #eef5ff; }
+        .emoji-btn:hover { transform: scale(1.1); background: rgba(91, 157, 237, 0.1); }
+        .emoji-btn.active { border-color: var(--adhd-blue); background: rgba(91, 157, 237, 0.2); }
 
         input, textarea {
-            width: 100%; padding: 15px; border-radius: 15px; border: 1px solid #eee;
-            background: #fdfdfd; font-size: 16px; margin-bottom: 20px; box-sizing: border-box;
-            outline: none; font-family: inherit;
+            width: 100%; padding: 15px; border-radius: 15px; border: 1px solid var(--border-color);
+            background: var(--bg-color); color: var(--text-main); font-size: 16px; 
+            margin-bottom: 20px; box-sizing: border-box; outline: none; font-family: inherit;
+            transition: border-color 0.2s, background-color 0.3s;
         }
         input:focus, textarea:focus { border-color: var(--adhd-blue); }
         
@@ -52,11 +74,11 @@
     <div class="header">
         <a href="/" class="back-btn">✕</a>
         <div class="title">일상 기록</div>
-        <div style="width: 20px;"></div> </div>
+        <div style="width: 24px;"></div> </div>
 
     <div class="form-card">
         <form action="/save_daily" method="post">
-            <label class="input-label">오늘의 기분 (직접 입력하거나 선택)</label>
+            <label class="input-label">오늘의 기분 (선택 또는 직접 입력)</label>
             <div class="emoji-selection">
                 <button type="button" class="emoji-btn" onclick="selectEmoji('😊', this)">😊</button>
                 <button type="button" class="emoji-btn" onclick="selectEmoji('🥳', this)">🥳</button>
@@ -64,7 +86,7 @@
                 <button type="button" class="emoji-btn" onclick="selectEmoji('🔥', this)">🔥</button>
                 <button type="button" class="emoji-btn" onclick="selectEmoji('😴', this)">😴</button>
             </div>
-            <input type="text" name="emoji" id="emojiInput" placeholder="이모지를 직접 입력해도 돼요!" required maxlength="10">
+            <input type="text" name="emoji" id="emojiInput" placeholder="이모지를 입력하세요" required maxlength="10">
 
             <label class="input-label">날짜</label>
             <input type="date" name="date" id="todayDate" required>
@@ -77,15 +99,17 @@
     </div>
 
     <script>
-        // 오늘 날짜 자동 설정
+        // 1. 다크모드 동기화 (메인 페이지 설정을 읽어옴)
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+
+        // 2. 오늘 날짜 자동 설정
         document.getElementById('todayDate').value = new Date().toISOString().substring(0, 10);
 
-        // 이모지 선택 함수
+        // 3. 이모지 선택 함수
         function selectEmoji(emoji, btn) {
-            // 입력창에 값 넣기
             document.getElementById('emojiInput').value = emoji;
-            
-            // 버튼 활성화 스타일 처리
             document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
         }
