@@ -6,11 +6,9 @@ from sqlalchemy import Column, Integer, String, Text, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
-# 1. DB 및 영구 저장소 설정
-if os.path.exists("/data"):
-    SQLALCHEMY_DATABASE_URL = "sqlite:////data/adhdiary.db"
-else:
-    SQLALCHEMY_DATABASE_URL = "sqlite:///./adhdiary.db"
+# 1. DB 및 영구 저장소 설정 (Railway Volume 대응)
+DB_DIR = "/data" if os.path.exists("/data") else "."
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_DIR}/adhdiary.db"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -26,87 +24,63 @@ class User(Base):
 class BookRecord(Base):
     __tablename__ = "book_records"
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String); date = Column(String); memo = Column(Text)
-    owner_id = Column(Integer)
+    title = Column(String); date = Column(String); memo = Column(Text); owner_id = Column(Integer)
 
 class DietRecord(Base):
     __tablename__ = "diet_records"
     id = Column(Integer, primary_key=True, index=True)
-    weight = Column(String); meal = Column(String); memo = Column(Text); date = Column(String)
-    owner_id = Column(Integer)
+    weight = Column(String); meal = Column(String); memo = Column(Text); date = Column(String); owner_id = Column(Integer)
 
 class DailyRecord(Base):
     __tablename__ = "daily_records"
     id = Column(Integer, primary_key=True, index=True)
-    emoji = Column(String); memo = Column(Text); date = Column(String)
-    owner_id = Column(Integer)
+    emoji = Column(String); memo = Column(Text); date = Column(String); owner_id = Column(Integer)
 
 class FoodRecord(Base):
     __tablename__ = "food_records"
     id = Column(Integer, primary_key=True, index=True)
-    place = Column(String); rating = Column(String); memo = Column(Text); date = Column(String)
-    owner_id = Column(Integer)
+    place = Column(String); rating = Column(String); memo = Column(Text); date = Column(String); owner_id = Column(Integer)
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
+# 3. 헬퍼 함수
 def get_db():
     db = SessionLocal()
     try: yield db
     finally: db.close()
 
 def get_current_user(request: Request):
-    return request.cookies.get("user_id")
+    uid = request.cookies.get("user_id")
+    return int(uid) if uid else None
 
-# 3. 인증 라우트 (로그인 유지 1년 설정)
-
-@app.get("/signup", response_class=HTMLResponse)
-async def signup_page(request: Request):
-    return templates.TemplateResponse("signup.html", {"request": request})
-
+# 4. 인증 라우트 (1년 유지)
 @app.post("/signup")
 async def signup(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-    existing_user = db.query(User).filter(User.username == username).first()
-    if existing_user:
+    if db.query(User).filter(User.username == username).first():
         return RedirectResponse(url="/signup?error=exists", status_code=303)
-    new_user = User(username=username, password=password)
-    db.add(new_user); db.commit()
+    db.add(User(username=username, password=password)); db.commit()
     return RedirectResponse(url="/login", status_code=303)
-
-@app.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
 
 @app.post("/login")
 async def login(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == username, User.password == password).first()
     if user:
         response = RedirectResponse(url="/", status_code=303)
-        # 1년(365일) 유지 설정: 60 * 60 * 24 * 365
-        ONE_YEAR = 31536000
-        response.set_cookie(
-            key="user_id", 
-            value=str(user.id), 
-            httponly=True, 
-            max_age=ONE_YEAR, 
-            samesite="lax"
-        )
+        response.set_cookie(key="user_id", value=str(user.id), httponly=True, max_age=31536000, samesite="lax")
         return response
     return RedirectResponse(url="/login?error=true", status_code=303)
 
 @app.get("/logout")
 async def logout():
-    response = RedirectResponse(url="/login")
-    response.delete_cookie("user_id")
-    return response
+    res = RedirectResponse(url="/login"); res.delete_cookie("user_id"); return res
 
-# 4. 메인 다이어리 기능 (본인 데이터 필터링)
-
+# 5. 메인 및 상세조회 (HTML fetch 경로와 일치시킴)
 @app.get("/", response_class=HTMLResponse)
 async def main_page(request: Request, db: Session = Depends(get_db), user_id=Depends(get_current_user)):
-    if not user_id: return RedirectResponse(url="/login")
+    if user_id is None: return RedirectResponse(url="/login")
     
     books = db.query(BookRecord).filter(BookRecord.owner_id == user_id).all()
     diets = db.query(DietRecord).filter(DietRecord.owner_id == user_id).all()
@@ -116,56 +90,63 @@ async def main_page(request: Request, db: Session = Depends(get_db), user_id=Dep
     all_records = []
     for b in books: all_records.append({"id": b.id, "title": f"📖 {b.title}", "date": b.date, "type": "book"})
     for d in diets: all_records.append({"id": d.id, "title": f"⚖️ {d.weight}kg - {d.meal}", "date": d.date, "type": "diet"})
-    for dy in dailies: all_records.append({"id": dy.id, "title": f"{dy.emoji} 오늘의 일상", "date": dy.date, "type": "daily"})
-    for f in foods: all_records.append({"id": f.id, "title": f"🍴 {f.place} ({f.rating})", "date": f.date, "type": "food"})
+    for dy in dailies: all_records.append({"id": dy.id, "title": f"{dy.emoji} 일상", "date": dy.date, "type": "daily"})
+    for f in foods: all_records.append({"id": f.id, "title": f"🍴 {f.place}", "date": f.date, "type": "food"})
     
     all_records.sort(key=lambda x: x['date'], reverse=True)
     return templates.TemplateResponse("index.html", {"request": request, "records": all_records})
 
-# --- 저장 API ---
+# 중요: HTML의 openModal 주소인 /{type}/{id}를 처리하는 부분
+@app.get("/{type}/{record_id}")
+async def get_record_detail(type: str, record_id: int, db: Session = Depends(get_db), user_id=Depends(get_current_user)):
+    if user_id is None: return {"error": "unauthorized"}
+    
+    model_map = {"book": BookRecord, "diet": DietRecord, "daily": DailyRecord, "food": FoodRecord}
+    model = model_map.get(type)
+    if not model: return {"error": "wrong type"}
 
+    r = db.query(model).filter(model.id == record_id, model.owner_id == user_id).first()
+    if not r: return {"error": "not found"}
+    
+    # 제목 포맷팅
+    title = f"📖 {getattr(r, 'title', '')}" if type == "book" else f"⚖️ {getattr(r, 'weight', '')}kg" if type == "diet" else f"{getattr(r, 'emoji', '')} 일상" if type == "daily" else f"🍴 {getattr(r, 'place', '')}"
+    
+    return {
+        "title": title,
+        "date": r.date,
+        "memo": r.memo if r.memo else "내용이 없습니다."
+    }
+
+# 6. 저장 및 삭제 API
 @app.post("/save_book")
-async def save_book(title: str = Form(...), date: str = Form(...), memo: str = Form(...), db: Session = Depends(get_db), user_id=Depends(get_current_user)):
-    if not user_id: return RedirectResponse(url="/login")
-    db.add(BookRecord(title=title, date=date, memo=memo, owner_id=user_id)); db.commit()
-    return RedirectResponse(url="/", status_code=303)
+async def s_b(title:str=Form(...), date:str=Form(...), memo:str=Form(...), uid=Depends(get_current_user), db:Session=Depends(get_db)):
+    db.add(BookRecord(title=title, date=date, memo=memo, owner_id=uid)); db.commit(); return RedirectResponse("/", 303)
 
 @app.post("/save_diet")
-async def save_diet(weight: str = Form(...), meal: str = Form(...), memo: str = Form(...), date: str = Form(...), db: Session = Depends(get_db), user_id=Depends(get_current_user)):
-    if not user_id: return RedirectResponse(url="/login")
-    db.add(DietRecord(weight=weight, meal=meal, memo=memo, date=date, owner_id=user_id)); db.commit()
-    return RedirectResponse(url="/", status_code=303)
+async def s_d(weight:str=Form(...), meal:str=Form(...), memo:str=Form(...), date:str=Form(...), uid=Depends(get_current_user), db:Session=Depends(get_db)):
+    db.add(DietRecord(weight=weight, meal=meal, memo=memo, date=date, owner_id=uid)); db.commit(); return RedirectResponse("/", 303)
 
 @app.post("/save_daily")
-async def save_daily(emoji: str = Form(...), memo: str = Form(...), date: str = Form(...), db: Session = Depends(get_db), user_id=Depends(get_current_user)):
-    if not user_id: return RedirectResponse(url="/login")
-    db.add(DailyRecord(emoji=emoji, memo=memo, date=date, owner_id=user_id)); db.commit()
-    return RedirectResponse(url="/", status_code=303)
+async def s_dy(emoji:str=Form(...), memo:str=Form(...), date:str=Form(...), uid=Depends(get_current_user), db:Session=Depends(get_db)):
+    db.add(DailyRecord(emoji=emoji, memo=memo, date=date, owner_id=uid)); db.commit(); return RedirectResponse("/", 303)
 
 @app.post("/save_food")
-async def save_food(place: str = Form(...), rating: str = Form(...), memo: str = Form(...), date: str = Form(...), db: Session = Depends(get_db), user_id=Depends(get_current_user)):
-    if not user_id: return RedirectResponse(url="/login")
-    db.add(FoodRecord(place=place, rating=rating, memo=memo, date=date, owner_id=user_id)); db.commit()
-    return RedirectResponse(url="/", status_code=303)
-
-# --- 상세 조회 및 삭제 ---
-
-@app.get("/view/{type}/{record_id}")
-async def get_record(type: str, record_id: int, db: Session = Depends(get_db), user_id=Depends(get_current_user)):
-    model = {"book": BookRecord, "diet": DietRecord, "daily": DailyRecord, "food": FoodRecord}[type]
-    r = db.query(model).filter(model.id == record_id, model.owner_id == user_id).first()
-    if not r: return {"error": "Unauthorized"}
-    title = f"📖 {r.title}" if type == "book" else f"⚖️ {r.weight}kg" if type == "diet" else f"{r.emoji} 일상" if type == "daily" else f"🍴 {r.place}"
-    return {"title": title, "date": r.date, "memo": r.memo}
+async def s_f(place:str=Form(...), rating:str=Form(...), memo:str=Form(...), date:str=Form(...), uid=Depends(get_current_user), db:Session=Depends(get_db)):
+    db.add(FoodRecord(place=place, rating=rating, memo=memo, date=date, owner_id=uid)); db.commit(); return RedirectResponse("/", 303)
 
 @app.post("/delete_{type}/{record_id}")
 async def delete_record(type: str, record_id: int, db: Session = Depends(get_db), user_id=Depends(get_current_user)):
-    model = {"book": BookRecord, "diet": DietRecord, "daily": DailyRecord, "food": FoodRecord}[type]
+    model = {"book": BookRecord, "diet": DietRecord, "daily": DailyRecord, "food": FoodRecord}.get(type)
     r = db.query(model).filter(model.id == record_id, model.owner_id == user_id).first()
     if r: db.delete(r); db.commit()
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse("/", 303)
 
-# --- 각 카테고리 입력 페이지 라우트 ---
+# 7. 기본 페이지 라우트 (카테고리 예약어 우선순위 주의)
+@app.get("/signup", response_class=HTMLResponse)
+async def p_signup(request: Request): return templates.TemplateResponse("signup.html", {"request": request})
+
+@app.get("/login", response_class=HTMLResponse)
+async def p_login(request: Request): return templates.TemplateResponse("login.html", {"request": request})
 
 @app.get("/{category_name}", response_class=HTMLResponse)
 async def category_pages(category_name: str, request: Request, user_id=Depends(get_current_user)):
