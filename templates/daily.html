@@ -6,7 +6,6 @@
     <title>일상 기록 - ADHDIARY</title>
     <style>
         :root {
-            /* 라이트모드 변수 */
             --bg-color: #F2F2F2;
             --card-bg: #FFFFFF;
             --text-main: #444444;
@@ -15,7 +14,6 @@
             --adhd-blue: #5B9DED;
         }
 
-        /* 다크모드 변수 - body.dark-mode 클래스가 있을 때 적용 */
         body.dark-mode {
             --bg-color: #121212;
             --card-bg: #1E1E1E;
@@ -28,45 +26,65 @@
             margin: 0; padding: 0; font-family: 'Apple SD Gothic Neo', sans-serif;
             background-color: var(--bg-color); display: flex; flex-direction: column; align-items: center;
             color: var(--text-main); transition: background-color 0.3s, color 0.3s;
+            min-height: 100vh; padding-bottom: 50px;
         }
 
         .header { width: 90%; max-width: 400px; margin-top: 40px; display: flex; align-items: center; justify-content: space-between; }
         .back-btn { text-decoration: none; color: var(--text-sub); font-size: 24px; font-weight: bold; }
         .title { font-size: 24px; font-weight: 900; }
 
+        /* 입력 폼 카드 */
         .form-card {
             background: var(--card-bg); width: 90%; max-width: 380px; margin-top: 20px;
             border-radius: 30px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            box-sizing: border-box; transition: background-color 0.3s;
+            box-sizing: border-box; margin-bottom: 40px;
         }
         
         .input-label { font-size: 13px; color: var(--text-sub); font-weight: bold; margin-bottom: 8px; display: block; }
         
-        /* 이모지 선택 버튼 영역 */
         .emoji-selection { display: flex; justify-content: space-between; margin-bottom: 15px; }
         .emoji-btn { 
             font-size: 24px; background: var(--bg-color); border: 1px solid var(--border-color); 
             border-radius: 12px; padding: 8px; cursor: pointer; transition: 0.2s;
         }
-        .emoji-btn:hover { transform: scale(1.1); background: rgba(91, 157, 237, 0.1); }
-        .emoji-btn.active { border-color: var(--adhd-blue); background: rgba(91, 157, 237, 0.2); }
+        .emoji-btn.active { border-color: var(--adhd-blue); background: rgba(91, 157, 237, 0.1); }
 
         input, textarea {
             width: 100%; padding: 15px; border-radius: 15px; border: 1px solid var(--border-color);
             background: var(--bg-color); color: var(--text-main); font-size: 16px; 
             margin-bottom: 20px; box-sizing: border-box; outline: none; font-family: inherit;
-            transition: border-color 0.2s, background-color 0.3s;
         }
-        input:focus, textarea:focus { border-color: var(--adhd-blue); }
         
-        textarea { height: 150px; resize: none; }
+        textarea { height: 100px; resize: none; }
 
         .save-btn {
             width: 100%; height: 60px; background-color: var(--adhd-blue);
             color: white; border-radius: 18px; border: none;
             font-size: 18px; font-weight: bold; cursor: pointer;
-            box-shadow: 0 5px 15px rgba(91, 157, 237, 0.3);
         }
+
+        /* --- 기록 리스트 (메인 카드 스타일) --- */
+        .history-section { width: 90%; max-width: 380px; margin-top: 10px; }
+        .history-title { font-size: 14px; font-weight: bold; color: var(--text-sub); margin-bottom: 15px; letter-spacing: 1px; }
+        
+        .history-item { 
+            background: var(--card-bg); border-radius: 20px; padding: 20px; margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05); position: relative;
+            border: 1px solid var(--border-color); transition: 0.2s;
+        }
+
+        /* 삭제 버튼 (우측 상단 X) */
+        .delete-btn {
+            position: absolute; top: 15px; right: 15px; background: var(--bg-color);
+            border: none; width: 26px; height: 26px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 12px; color: var(--text-sub); transition: 0.2s;
+        }
+        .delete-btn:hover { background: #FFEDED; color: #FF4D4D; }
+
+        .history-item .date { font-size: 11px; color: var(--text-sub); margin-bottom: 8px; font-weight: bold; }
+        .history-item .content { font-size: 14px; line-height: 1.6; display: flex; align-items: flex-start; }
+        .history-item .emoji-display { font-size: 20px; margin-right: 10px; }
     </style>
 </head>
 <body>
@@ -74,32 +92,52 @@
     <div class="header">
         <a href="/" class="back-btn">✕</a>
         <div class="title">일상 기록</div>
-        <div style="width: 24px;"></div> </div>
+        <div style="width: 24px;"></div>
+    </div>
 
     <div class="form-card">
         <form action="/save_daily" method="post">
-            <label class="input-label">오늘의 기분 (선택 또는 직접 입력)</label>
+            <label class="input-label">오늘의 기분</label>
             <div class="emoji-selection">
                 <button type="button" class="emoji-btn" onclick="selectEmoji('😊', this)">😊</button>
                 <button type="button" class="emoji-btn" onclick="selectEmoji('🥳', this)">🥳</button>
                 <button type="button" class="emoji-btn" onclick="selectEmoji('😭', this)">😭</button>
-                <button type="button" class="emoji-btn" onclick="selectEmoji('🔥', this)">🔥</button>
                 <button type="button" class="emoji-btn" onclick="selectEmoji('😴', this)">😴</button>
+                <button type="button" class="emoji-btn" onclick="selectEmoji('✨', this)">✨</button>
             </div>
-            <input type="text" name="emoji" id="emojiInput" placeholder="제목(기분)을 입력하세요" required maxlength="10">
+            <input type="text" name="emoji" id="emojiInput" placeholder="이모지를 선택하거나 입력하세요" required maxlength="10">
 
             <label class="input-label">날짜</label>
             <input type="date" name="date" id="todayDate" required>
 
             <label class="input-label">내용</label>
-            <textarea name="memo" placeholder="오늘 어떤 일이 있었나요?" required></textarea>
+            <textarea name="memo" placeholder="무슨 일이 있었나요?" required></textarea>
 
-            <button type="submit" class="save-btn">기록 저장하기</button>
+            <button type="submit" class="save-btn">오늘의 일상 저장</button>
         </form>
     </div>
 
+    <div class="history-section">
+        <div class="history-title">PAST RECORDS</div>
+        {% for r in my_records %}
+        <div class="history-item">
+            <form action="/delete_daily/{{ r.id }}" method="post" onsubmit="return confirm('이 기록을 삭제할까요?');">
+                <button type="submit" class="delete-btn">✕</button>
+            </form>
+
+            <div class="date">{{ r.date }}</div>
+            <div class="content">
+                <span class="emoji-display">{{ r.emoji }}</span>
+                <span>{{ r.memo }}</span>
+            </div>
+        </div>
+        {% else %}
+        <p style="text-align: center; color: var(--text-sub); font-size: 13px;">아직 기록이 없습니다.</p>
+        {% endfor %}
+    </div>
+
     <script>
-        // 1. 다크모드 동기화 (메인 페이지 설정을 읽어옴)
+        // 1. 다크모드 적용
         if (localStorage.getItem('darkMode') === 'true') {
             document.body.classList.add('dark-mode');
         }
@@ -116,4 +154,3 @@
     </script>
 </body>
 </html>
-
