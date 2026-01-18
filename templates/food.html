@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>맛집 기록 - ADHDIARY</title>
+    <title>FOOD LOG - ADHDIARY</title>
     <style>
         :root {
             --bg-color: #F2F2F2;
@@ -11,7 +11,8 @@
             --text-main: #444444;
             --text-sub: #BBBBBB;
             --border-color: #EEEEEE;
-            --adhd-pink: #EF6C85;
+            --food-red: #EF6C85;
+            --star-color: #FFD700;
         }
 
         body.dark-mode {
@@ -24,124 +25,182 @@
 
         body { 
             margin: 0; padding: 0; font-family: 'Apple SD Gothic Neo', sans-serif;
-            background-color: var(--bg-color); display: flex; flex-direction: column; align-items: center;
-            color: var(--text-main); transition: background-color 0.3s, color 0.3s;
-            min-height: 100vh; padding-bottom: 50px;
+            background-color: var(--bg-color); color: var(--text-main);
+            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
         }
 
-        .header { width: 90%; max-width: 400px; margin-top: 40px; display: flex; align-items: center; justify-content: space-between; }
-        .back-btn { text-decoration: none; color: var(--text-sub); font-size: 24px; font-weight: bold; }
-        .title { font-size: 24px; font-weight: 900; }
+        .header {
+            width: 100%; max-width: 400px; padding: 40px 20px 20px;
+            display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;
+        }
 
-        /* 입력 폼 카드 */
+        .back-btn { font-size: 24px; cursor: pointer; color: var(--food-red); text-decoration: none; }
+        .title { font-size: 20px; font-weight: 900; }
+
         .form-card {
-            background: var(--card-bg); width: 90%; max-width: 380px; margin-top: 20px;
-            border-radius: 30px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            box-sizing: border-box; margin-bottom: 40px;
+            background: var(--card-bg); width: 90%; max-width: 380px;
+            border-radius: 30px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            box-sizing: border-box;
         }
-        
-        .input-label { font-size: 13px; color: var(--text-sub); font-weight: bold; margin-bottom: 8px; display: block; }
 
-        input, textarea, select {
-            width: 100%; padding: 15px; border-radius: 15px; border: 1px solid var(--border-color);
-            background: var(--bg-color); color: var(--text-main); font-size: 16px; 
-            margin-bottom: 20px; box-sizing: border-box; outline: none; font-family: inherit;
-        }
-        input:focus, select:focus { border-color: var(--adhd-pink); }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; font-size: 12px; color: var(--text-sub); margin-bottom: 8px; font-weight: bold; }
         
+        input[type="text"], input[type="date"], textarea {
+            width: 100%; padding: 15px; border-radius: 12px; border: 1px solid var(--border-color);
+            background: var(--bg-color); color: var(--text-main); font-size: 15px;
+            box-sizing: border-box; outline: none; transition: 0.3s;
+        }
+
         textarea { height: 100px; resize: none; }
 
-        .save-btn {
-            width: 100%; height: 60px; background-color: var(--adhd-pink);
-            color: white; border-radius: 18px; border: none;
+        /* 별점 스타일 */
+        .star-rating {
+            display: flex; flex-direction: row-reverse; justify-content: flex-end;
+            gap: 5px; font-size: 30px; margin-top: 5px;
+        }
+        .star-rating input { display: none; }
+        .star-rating label { cursor: pointer; color: #ccc; transition: 0.2s; }
+        .star-rating input:checked ~ label { color: var(--star-color); }
+        .star-rating label:hover, .star-rating label:hover ~ label { color: var(--star-color); }
+
+        .file-wrapper {
+            width: 100%; height: 150px; border: 2px dashed var(--border-color);
+            border-radius: 15px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; cursor: pointer;
+            overflow: hidden; position: relative; background: var(--bg-color);
+        }
+        #preview { width: 100%; height: 100%; object-fit: cover; display: none; }
+        .file-msg { font-size: 13px; color: var(--text-sub); text-align: center; }
+
+        .submit-btn {
+            width: 100%; height: 60px; background: var(--food-red);
+            color: white; border: none; border-radius: 15px;
             font-size: 18px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 5px 15px rgba(239, 108, 133, 0.3); margin-top: 10px;
         }
 
-        /* --- 리스트 영역 (메인 카드 스타일) --- */
-        .history-section { width: 90%; max-width: 380px; }
-        .history-title { font-size: 14px; font-weight: bold; color: var(--text-sub); margin-bottom: 15px; }
+        /* 기록 리스트 */
+        .record-list { width: 90%; max-width: 380px; margin-top: 30px; padding-bottom: 50px; }
+        .record-item {
+            background: var(--card-bg); padding: 20px; border-radius: 20px;
+            margin-bottom: 15px; display: flex; flex-direction: column;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        }
+        .record-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .record-main { display: flex; align-items: center; }
+        .record-item img.thumb { width: 60px; height: 60px; border-radius: 12px; margin-right: 15px; object-fit: cover; }
         
-        .history-item { 
-            background: var(--card-bg); border-radius: 20px; padding: 20px; margin-bottom: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05); position: relative;
-            border: 1px solid var(--border-color);
+        .record-memo { 
+            font-size: 13px; line-height: 1.5; color: var(--text-main); 
+            background: var(--bg-color); padding: 12px; border-radius: 10px; margin-top: 12px;
         }
 
-        /* 삭제 버튼 */
-        .delete-btn {
-            position: absolute; top: 15px; right: 15px; background: var(--bg-color);
-            border: none; width: 28px; height: 28px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; font-size: 12px; color: var(--text-sub); transition: 0.2s;
-        }
-        .delete-btn:hover { background: #FFEDED; color: #FF4D4D; }
-
-        .history-item .date { font-size: 11px; color: var(--text-sub); margin-bottom: 8px; font-weight: bold; }
-        .history-item .place-display { font-size: 17px; font-weight: 900; color: var(--adhd-pink); margin-bottom: 3px; }
-        .history-item .rating-display { font-size: 13px; margin-bottom: 8px; }
-        .history-item .memo-display { font-size: 14px; color: var(--text-main); line-height: 1.5; }
+        .del-btn { background: none; border: none; color: #ff8a80; font-size: 18px; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <a href="/" class="back-btn">✕</a>
-        <div class="title">맛집 기록</div>
-        <div style="width: 24px;"></div>
+        <a href="/" class="back-btn">〈</a>
+        <div class="title">🍴 맛집 기록</div>
+        <div style="width:24px;"></div>
     </div>
 
     <div class="form-card">
-        <form action="/save_food" method="post">
-            <label class="input-label">식당 이름</label>
-            <input type="text" name="place" placeholder="어디에 다녀오셨나요?" required>
+        <form action="/save_food" method="post" enctype="multipart/form-data">
+            <div class="input-group">
+                <label>PLACE NAME</label>
+                <input type="text" name="place" placeholder="가게 이름" required>
+            </div>
 
-            <label class="input-label">평점 선택</label>
-            <select name="rating">
-                <option value="⭐⭐⭐⭐⭐">⭐⭐⭐⭐⭐ (최고의 맛!)</option>
-                <option value="⭐⭐⭐⭐">⭐⭐⭐⭐ (추천해요)</option>
-                <option value="⭐⭐⭐">⭐⭐⭐ (괜찮았어요)</option>
-                <option value="⭐⭐">⭐⭐ (그저 그래요)</option>
-                <option value="⭐">⭐ (아쉬워요)</option>
-            </select>
+            <div class="input-group">
+                <label>RATING</label>
+                <div class="star-rating">
+                    <input type="radio" id="star5" name="rating" value="⭐⭐⭐⭐⭐" required><label for="star5">★</label>
+                    <input type="radio" id="star4" name="rating" value="⭐⭐⭐⭐"><label for="star4">★</label>
+                    <input type="radio" id="star3" name="rating" value="⭐⭐⭐"><label for="star3">★</label>
+                    <input type="radio" id="star2" name="rating" value="⭐⭐"><label for="star2">★</label>
+                    <input type="radio" id="star1" name="rating" value="⭐"><label for="star1">★</label>
+                </div>
+            </div>
 
-            <label class="input-label">날짜</label>
-            <input type="date" name="date" id="todayDate" required>
+            <div class="input-group">
+                <label>DATE</label>
+                <input type="date" name="date" id="currentDate" required>
+            </div>
 
-            <label class="input-label">메모 (추천 메뉴 등)</label>
-            <textarea name="memo" placeholder="맛이 어땠는지 짧게 남겨주세요."></textarea>
+            <div class="input-group">
+                <label>FOOD PHOTO</label>
+                <div class="file-wrapper" onclick="document.getElementById('image').click()">
+                    <img id="preview" src="#">
+                    <div id="file-msg" class="file-msg">
+                        <span style="font-size: 30px;">📸</span><br>
+                        사진 추가
+                    </div>
+                    <input type="file" id="image" name="image" accept="image/*" style="display:none;" onchange="previewImage(this)">
+                </div>
+            </div>
 
-            <button type="submit" class="save-btn">맛집 기록 저장</button>
+            <div class="input-group">
+                <label>MEMO</label>
+                <textarea name="memo" placeholder="맛이 어땠나요?" required></textarea>
+            </div>
+
+            <button type="submit" class="submit-btn">기록하기</button>
         </form>
     </div>
 
-    <div class="history-section">
-        <div class="history-title">PAST FOODIE LOG</div>
-        {% for r in my_records %}
-        <div class="history-item">
-            <form action="/delete_food/{{ r.id }}" method="post" onsubmit="return confirm('이 맛집 기록을 삭제하시겠습니까?');">
-                <button type="submit" class="delete-btn">✕</button>
-            </form>
-
-            <div class="date">{{ r.date }}</div>
-            <div class="place-display">🍴 {{ r.place }}</div>
-            <div class="rating-display">{{ r.rating }}</div>
-            {% if r.memo %}
-            <div class="memo-display">{{ r.memo }}</div>
+    <div class="record-list">
+        <h3 style="font-size: 12px; color: var(--text-sub); letter-spacing: 1px;">MY FOOD LOGS</h3>
+        {% for record in my_records %}
+        <div class="record-item">
+            <div class="record-header">
+                <div class="record-main">
+                    {% if record.image_url %}
+                    <img src="{{ record.image_url }}" class="thumb">
+                    {% else %}
+                    <div style="width:60px; height:60px; background:var(--bg-color); border-radius:12px; margin-right:15px; display:flex; align-items:center; justify-content:center; font-size:24px;">🍴</div>
+                    {% endif %}
+                    <div>
+                        <b style="font-size:16px;">{{ record.place }}</b>
+                        <p style="font-size:12px; color:var(--text-sub); margin:4px 0 0 0;">{{ record.date }} | <span style="color:var(--star-color)">{{ record.rating }}</span></p>
+                    </div>
+                </div>
+                <form action="/delete_food/{{ record.id }}" method="post" style="margin:0;">
+                    <button type="submit" class="del-btn" onclick="return confirm('삭제할까요?')">🗑️</button>
+                </form>
+            </div>
+            
+            {% if record.memo %}
+            <div class="record-memo">
+                {{ record.memo }}
+            </div>
             {% endif %}
         </div>
-        {% else %}
-        <p style="text-align: center; color: var(--text-sub); font-size: 13px;">아직 기록된 맛집이 없습니다.</p>
         {% endfor %}
     </div>
 
     <script>
-        // 다크모드 적용
+        document.getElementById('currentDate').value = new Date().toISOString().substring(0, 10);
+
+        function previewImage(input) {
+            const preview = document.getElementById('preview');
+            const msg = document.getElementById('file-msg');
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    msg.style.display = 'none';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
         if (localStorage.getItem('darkMode') === 'true') {
             document.body.classList.add('dark-mode');
         }
-
-        // 오늘 날짜 설정
-        document.getElementById('todayDate').value = new Date().toISOString().substring(0, 10);
     </script>
 </body>
 </html>
