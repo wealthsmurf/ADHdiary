@@ -1,18 +1,25 @@
 import os
-from fastapi import FastAPI, Request, Form, Depends, HTTPException
+import uuid
+from fastapi import FastAPI, Request, Form, Depends, HTTPException, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import Column, Integer, String, Text, create_engine, desc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
-# 1. DB 설정
+# 1. 파일 저장 경로 설정 (static/uploads 폴더 자동 생성)
+UPLOAD_DIR = "static/uploads"
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
+
+# 2. DB 설정
 SQLALCHEMY_DATABASE_URL = "sqlite:///./adhdiary.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# 2. 모델 정의
+# 3. DB 모델 정의 (image_url 컬럼 추가)
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
@@ -21,25 +28,28 @@ class User(Base):
 
 class BookRecord(Base):
     __tablename__ = "book_records"
-    id = Column(Integer, primary_key=True); title = Column(String); date = Column(String); memo = Column(Text); owner_id = Column(Integer)
+    id = Column(Integer, primary_key=True); title = Column(String); date = Column(String); memo = Column(Text); image_url = Column(String); owner_id = Column(Integer)
 
 class DietRecord(Base):
     __tablename__ = "diet_records"
-    id = Column(Integer, primary_key=True); weight = Column(String); meal = Column(String); memo = Column(Text); date = Column(String); owner_id = Column(Integer)
+    id = Column(Integer, primary_key=True); weight = Column(String); meal = Column(String); memo = Column(Text); date = Column(String); image_url = Column(String); owner_id = Column(Integer)
 
 class DailyRecord(Base):
     __tablename__ = "daily_records"
-    id = Column(Integer, primary_key=True); emoji = Column(String); memo = Column(Text); date = Column(String); owner_id = Column(Integer)
+    id = Column(Integer, primary_key=True); emoji = Column(String); memo = Column(Text); date = Column(String); image_url = Column(String); owner_id = Column(Integer)
 
 class FoodRecord(Base):
     __tablename__ = "food_records"
-    id = Column(Integer, primary_key=True); place = Column(String); rating = Column(String); memo = Column(Text); date = Column(String); owner_id = Column(Integer)
+    id = Column(Integer, primary_key=True); place = Column(String); rating = Column(String); memo = Column(Text); date = Column(String); image_url = Column(String); owner_id = Column(Integer)
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+# 정적 파일(이미지) 서빙 설정
+app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+# --- 유틸리티 함수 ---
 def get_db():
     db = SessionLocal()
     try: yield db
@@ -49,7 +59,16 @@ def get_current_user(request: Request):
     uid = request.cookies.get("user_id")
     return int(uid) if uid else None
 
-# 3. 로그인 및 회원가입 (아이디 중복 확인 포함)
+async def save_file(file: UploadFile):
+    if not file or not file.filename: return None
+    ext = os.path.splitext(file.filename)[1]
+    filename = f"{uuid.uuid4()}{ext}"
+    path = os.path.join(UPLOAD_DIR, filename)
+    with open(path, "wb") as f:
+        f.write(await file.read())
+    return f"/static/uploads/{filename}"
+
+# 4. 로그인 및 회원가입 (아이디 중복 확인 포함)
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, error: str = None):
     return templates.TemplateResponse("login.html", {"request": request, "error": error})
@@ -69,16 +88,12 @@ async def signup_page(request: Request, error: str = None):
 
 @app.post("/signup")
 async def signup(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-    # [중복 확인 로직]
-    existing_user = db.query(User).filter(User.username == username).first()
-    if existing_user:
+    if db.query(User).filter(User.username == username).first():
         return RedirectResponse(url="/signup?error=exists", status_code=303)
-    
-    new_user = User(username=username, password=password)
-    db.add(new_user); db.commit()
+    db.add(User(username=username, password=password)); db.commit()
     return RedirectResponse(url="/login?error=registered", status_code=303)
 
-# 4. 메인 피드
+# 5. 메인 피드 (records 구조 유지)
 @app.get("/", response_class=HTMLResponse)
 async def main_page(request: Request, db: Session = Depends(get_db), user_id=Depends(get_current_user)):
     if user_id is None: return RedirectResponse(url="/login")
@@ -97,37 +112,46 @@ async def main_page(request: Request, db: Session = Depends(get_db), user_id=Dep
     recs.sort(key=lambda x: x['date'] if x['date'] else "", reverse=True)
     return templates.TemplateResponse("index.html", {"request": request, "records": recs})
 
-# 5. 모달 상세 데이터 (JS fetch 대응)
+# 6. 상세 모달 API (이미지 URL 포함)
 @app.get("/{type}/{record_id}")
 async def get_detail(type: str, record_id: int, db: Session = Depends(get_db), user_id=Depends(get_current_user)):
     models = {"book": BookRecord, "diet": DietRecord, "daily": DailyRecord, "food": FoodRecord}
     r = db.query(models[type]).filter(models[type].id == record_id, models[type].owner_id == user_id).first()
     if not r: raise HTTPException(status_code=404)
     
-    data = {"date": r.date, "memo": r.memo if r.memo else "메모가 없습니다."}
+    data = {"date": r.date, "memo": r.memo if r.memo else "", "image_url": r.image_url}
     if type == "book": data["title"] = f"📖 {r.title}"
     elif type == "diet": data["title"] = f"⚖️ {r.weight}kg 기록"
     elif type == "daily": data["title"] = f"{r.emoji} 일상"
     elif type == "food": data["title"] = f"🍴 {r.place}"
     return JSONResponse(data)
 
-# 6. 저장 및 삭제
+# 7. 저장 로직 (사진 업로드 처리 추가)
 @app.post("/save_book")
-async def save_book(title:str=Form(...), date:str=Form(...), memo:str=Form(...), uid=Depends(get_current_user), db:Session=Depends(get_db)):
-    db.add(BookRecord(title=title, date=date, memo=memo, owner_id=uid)); db.commit(); return RedirectResponse("/book", 303)
+async def save_book(title:str=Form(...), date:str=Form(...), memo:str=Form(...), image:UploadFile=File(None), uid=Depends(get_current_user), db:Session=Depends(get_db)):
+    img = await save_file(image)
+    db.add(BookRecord(title=title, date=date, memo=memo, image_url=img, owner_id=uid)); db.commit()
+    return RedirectResponse("/book", 303)
 
 @app.post("/save_diet")
-async def save_diet(weight:str=Form(...), meal:str=Form(...), memo:str=Form(...), date:str=Form(...), uid=Depends(get_current_user), db:Session=Depends(get_db)):
-    db.add(DietRecord(weight=weight, meal=meal, memo=memo, date=date, owner_id=uid)); db.commit(); return RedirectResponse("/diet", 303)
+async def save_diet(weight:str=Form(...), meal:str=Form(...), memo:str=Form(...), date:str=Form(...), image:UploadFile=File(None), uid=Depends(get_current_user), db:Session=Depends(get_db)):
+    img = await save_file(image)
+    db.add(DietRecord(weight=weight, meal=meal, memo=memo, date=date, image_url=img, owner_id=uid)); db.commit()
+    return RedirectResponse("/diet", 303)
 
 @app.post("/save_daily")
-async def save_daily(emoji:str=Form(...), memo:str=Form(...), date:str=Form(...), uid=Depends(get_current_user), db:Session=Depends(get_db)):
-    db.add(DailyRecord(emoji=emoji, memo=memo, date=date, owner_id=uid)); db.commit(); return RedirectResponse("/daily", 303)
+async def save_daily(emoji:str=Form(...), memo:str=Form(...), date:str=Form(...), image:UploadFile=File(None), uid=Depends(get_current_user), db:Session=Depends(get_db)):
+    img = await save_file(image)
+    db.add(DailyRecord(emoji=emoji, memo=memo, date=date, image_url=img, owner_id=uid)); db.commit()
+    return RedirectResponse("/daily", 303)
 
 @app.post("/save_food")
-async def save_food(place:str=Form(...), rating:str=Form(...), memo:str=Form(...), date:str=Form(...), uid=Depends(get_current_user), db:Session=Depends(get_db)):
-    db.add(FoodRecord(place=place, rating=rating, memo=memo, date=date, owner_id=uid)); db.commit(); return RedirectResponse("/food", 303)
+async def save_food(place:str=Form(...), rating:str=Form(...), memo:str=Form(...), date:str=Form(...), image:UploadFile=File(None), uid=Depends(get_current_user), db:Session=Depends(get_db)):
+    img = await save_file(image)
+    db.add(FoodRecord(place=place, rating=rating, memo=memo, date=date, image_url=img, owner_id=uid)); db.commit()
+    return RedirectResponse("/food", 303)
 
+# 8. 삭제 및 상세 뷰
 @app.post("/delete_{type}/{record_id}")
 async def delete_rec(type: str, record_id: int, db: Session = Depends(get_db), uid=Depends(get_current_user)):
     models = {"book": BookRecord, "diet": DietRecord, "daily": DailyRecord, "food": FoodRecord}
