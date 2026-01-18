@@ -12,7 +12,7 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# 2. DB 모델 정의 (HTML 변수와 매칭되도록 설계)
+# 2. 모델 정의
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
@@ -40,7 +40,6 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-# 3. 유저 인증 헬퍼
 def get_db():
     db = SessionLocal()
     try: yield db
@@ -50,7 +49,7 @@ def get_current_user(request: Request):
     uid = request.cookies.get("user_id")
     return int(uid) if uid else None
 
-# 4. 로그인 / 회원가입 (알림 로직 포함)
+# 3. 로그인 및 회원가입 (아이디 중복 확인 포함)
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, error: str = None):
     return templates.TemplateResponse("login.html", {"request": request, "error": error})
@@ -64,61 +63,70 @@ async def login(username: str = Form(...), password: str = Form(...), db: Sessio
         return res
     return RedirectResponse(url="/login?error=invalid", status_code=303)
 
+@app.get("/signup", response_class=HTMLResponse)
+async def signup_page(request: Request, error: str = None):
+    return templates.TemplateResponse("signup.html", {"request": request, "error": error})
+
 @app.post("/signup")
 async def signup(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-    if db.query(User).filter(User.username == username).first():
+    # [중복 확인 로직]
+    existing_user = db.query(User).filter(User.username == username).first()
+    if existing_user:
         return RedirectResponse(url="/signup?error=exists", status_code=303)
-    db.add(User(username=username, password=password)); db.commit()
+    
+    new_user = User(username=username, password=password)
+    db.add(new_user); db.commit()
     return RedirectResponse(url="/login?error=registered", status_code=303)
 
-# 5. [중요] 메인 페이지 (HTML 변수명 record.title, record.type 등 완벽 일치)
+# 4. 메인 피드
 @app.get("/", response_class=HTMLResponse)
 async def main_page(request: Request, db: Session = Depends(get_db), user_id=Depends(get_current_user)):
     if user_id is None: return RedirectResponse(url="/login")
     
-    books = db.query(BookRecord).filter(BookRecord.owner_id == user_id).all()
-    diets = db.query(DietRecord).filter(DietRecord.owner_id == user_id).all()
-    dailies = db.query(DailyRecord).filter(DailyRecord.owner_id == user_id).all()
-    foods = db.query(FoodRecord).filter(FoodRecord.owner_id == user_id).all()
+    b = db.query(BookRecord).filter(BookRecord.owner_id == user_id).all()
+    d = db.query(DietRecord).filter(DietRecord.owner_id == user_id).all()
+    dy = db.query(DailyRecord).filter(DailyRecord.owner_id == user_id).all()
+    f = db.query(FoodRecord).filter(FoodRecord.owner_id == user_id).all()
     
-    all_recs = []
-    for r in books: all_recs.append({"id": r.id, "type": "book", "title": f"📖 {r.title}", "date": r.date})
-    for r in diets: all_recs.append({"id": r.id, "type": "diet", "title": f"⚖️ {r.weight}kg 기록", "date": r.date})
-    for r in dailies: all_recs.append({"id": r.id, "type": "daily", "title": f"{r.emoji} 일상 기록", "date": r.date})
-    for r in foods: all_recs.append({"id": r.id, "type": "food", "title": f"🍴 {r.place}", "date": r.date})
+    recs = []
+    for r in b: recs.append({"id": r.id, "type": "book", "title": f"📖 {r.title}", "date": r.date})
+    for r in d: recs.append({"id": r.id, "type": "diet", "title": f"⚖️ {r.weight}kg 기록", "date": r.date})
+    for r in dy: recs.append({"id": r.id, "type": "daily", "title": f"{r.emoji} 일상 기록", "date": r.date})
+    for r in f: recs.append({"id": r.id, "type": "food", "title": f"🍴 {r.place}", "date": r.date})
     
-    all_recs.sort(key=lambda x: x['date'] if x['date'] else "", reverse=True)
-    return templates.TemplateResponse("index.html", {"request": request, "records": all_recs})
+    recs.sort(key=lambda x: x['date'] if x['date'] else "", reverse=True)
+    return templates.TemplateResponse("index.html", {"request": request, "records": recs})
 
-# 6. [중요] 모달 데이터를 위한 JSON API (HTML의 openModal 함수 대응)
+# 5. 모달 상세 데이터 (JS fetch 대응)
 @app.get("/{type}/{record_id}")
-async def get_record_detail(type: str, record_id: int, db: Session = Depends(get_db), user_id=Depends(get_current_user)):
+async def get_detail(type: str, record_id: int, db: Session = Depends(get_db), user_id=Depends(get_current_user)):
     models = {"book": BookRecord, "diet": DietRecord, "daily": DailyRecord, "food": FoodRecord}
-    if type not in models: raise HTTPException(status_code=404)
-    
     r = db.query(models[type]).filter(models[type].id == record_id, models[type].owner_id == user_id).first()
     if not r: raise HTTPException(status_code=404)
     
-    # HTML 모달에서 기대하는 필드 구성
-    title = ""
-    if type == "book": title = f"📖 {r.title}"
-    elif type == "diet": title = f"⚖️ {r.weight}kg 기록"
-    elif type == "daily": title = f"{r.emoji} 일상"
-    elif type == "food": title = f"🍴 {r.place}"
-    
-    memo = r.memo if r.memo else "메모가 없습니다."
-    return JSONResponse({"title": title, "date": r.date, "memo": memo})
+    data = {"date": r.date, "memo": r.memo if r.memo else "메모가 없습니다."}
+    if type == "book": data["title"] = f"📖 {r.title}"
+    elif type == "diet": data["title"] = f"⚖️ {r.weight}kg 기록"
+    elif type == "daily": data["title"] = f"{r.emoji} 일상"
+    elif type == "food": data["title"] = f"🍴 {r.place}"
+    return JSONResponse(data)
 
-# 7. 카테고리별 저장/상세 페이지/삭제 (기존 로직 유지)
-@app.post("/save_{type}")
-async def save_any(type: str, request: Request, db: Session = Depends(get_db), uid=Depends(get_current_user)):
-    form = await request.form()
-    if type == "book": db.add(BookRecord(title=form.get("title"), date=form.get("date"), memo=form.get("memo"), owner_id=uid))
-    elif type == "diet": db.add(DietRecord(weight=form.get("weight"), meal=form.get("meal"), memo=form.get("memo"), date=form.get("date"), owner_id=uid))
-    elif type == "daily": db.add(DailyRecord(emoji=form.get("emoji"), memo=form.get("memo"), date=form.get("date"), owner_id=uid))
-    elif type == "food": db.add(FoodRecord(place=form.get("place"), rating=form.get("rating"), memo=form.get("memo"), date=form.get("date"), owner_id=uid))
-    db.commit()
-    return RedirectResponse(f"/{type}", 303)
+# 6. 저장 및 삭제
+@app.post("/save_book")
+async def save_book(title:str=Form(...), date:str=Form(...), memo:str=Form(...), uid=Depends(get_current_user), db:Session=Depends(get_db)):
+    db.add(BookRecord(title=title, date=date, memo=memo, owner_id=uid)); db.commit(); return RedirectResponse("/book", 303)
+
+@app.post("/save_diet")
+async def save_diet(weight:str=Form(...), meal:str=Form(...), memo:str=Form(...), date:str=Form(...), uid=Depends(get_current_user), db:Session=Depends(get_db)):
+    db.add(DietRecord(weight=weight, meal=meal, memo=memo, date=date, owner_id=uid)); db.commit(); return RedirectResponse("/diet", 303)
+
+@app.post("/save_daily")
+async def save_daily(emoji:str=Form(...), memo:str=Form(...), date:str=Form(...), uid=Depends(get_current_user), db:Session=Depends(get_db)):
+    db.add(DailyRecord(emoji=emoji, memo=memo, date=date, owner_id=uid)); db.commit(); return RedirectResponse("/daily", 303)
+
+@app.post("/save_food")
+async def save_food(place:str=Form(...), rating:str=Form(...), memo:str=Form(...), date:str=Form(...), uid=Depends(get_current_user), db:Session=Depends(get_db)):
+    db.add(FoodRecord(place=place, rating=rating, memo=memo, date=date, owner_id=uid)); db.commit(); return RedirectResponse("/food", 303)
 
 @app.post("/delete_{type}/{record_id}")
 async def delete_rec(type: str, record_id: int, db: Session = Depends(get_db), uid=Depends(get_current_user)):
@@ -128,7 +136,7 @@ async def delete_rec(type: str, record_id: int, db: Session = Depends(get_db), u
     return RedirectResponse("/", 303)
 
 @app.get("/{category}", response_class=HTMLResponse)
-async def cat_view(category: str, request: Request, db: Session = Depends(get_db), uid=Depends(get_current_user)):
+async def category_view(category: str, request: Request, db: Session = Depends(get_db), uid=Depends(get_current_user)):
     if category in ["favicon.ico", "static"]: return HTMLResponse("")
     if not uid: return RedirectResponse("/login")
     models = {"book": BookRecord, "diet": DietRecord, "daily": DailyRecord, "food": FoodRecord}
