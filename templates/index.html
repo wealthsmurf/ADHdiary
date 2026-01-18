@@ -5,236 +5,104 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ADHDIARY</title>
     <style>
-        :root {
-            /* 라이트모드 변수 */
-            --bg-color: #F2F2F2;
-            --card-bg: #FFFFFF;
-            --text-main: #444444;
-            --text-sub: #BBBBBB;
-            --border-color: #EEEEEE;
-            --adhd-blue: #4A90E2;
-        }
-
-        body.dark-mode {
-            /* 다크모드 변수 */
-            --bg-color: #121212;
-            --card-bg: #1E1E1E;
-            --text-main: #FFFFFF;
-            --text-sub: #888888;
-            --border-color: #333333;
-        }
-
-        body { 
-            margin: 0; padding: 0; font-family: 'Apple SD Gothic Neo', sans-serif;
-            background-color: var(--bg-color); display: flex; flex-direction: column;
-            align-items: center; min-height: 100vh; overflow-x: hidden;
-            color: var(--text-main); transition: background-color 0.3s, color 0.3s;
-        }
-
-        /* 다크모드 토글 버튼 */
-        .dark-toggle {
-            position: fixed; top: 20px; right: 20px; width: 45px; height: 45px;
-            background: var(--card-bg); border-radius: 50%; display: flex;
-            align-items: center; justify-content: center; cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 3000; font-size: 20px;
-        }
-
-        .logo { margin-top: 40px; font-size: 36px; font-weight: 900; letter-spacing: 5px; text-align: center; }
-        .logo span:nth-child(1), .logo span:nth-child(2) { color: #E88385; }
-        .logo span:nth-child(3), .logo span:nth-child(4) { color: #F9B252; }
-        .logo span:nth-child(5), .logo span:nth-child(6) { color: #82C471; }
-        .logo span:nth-child(7), .logo span:nth-child(8) { color: #5B9DED; }
-
-        .main-card {
-            background: var(--card-bg); width: 90%; max-width: 380px; margin-top: 30px;
-            border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            display: flex; flex-direction: column; align-items: center; padding-bottom: 20px;
-            flex-grow: 1; margin-bottom: 80px; transition: background 0.3s;
-        }
-
-        .grid-container {
-            display: grid; grid-template-columns: 1fr 1fr;
-            gap: 12px; width: 90%; margin-top: 25px; position: relative; min-height: 140px;
-        }
-
-        .category-btn {
-            height: 60px; border-radius: 12px; border: none;
-            color: white; font-size: 16px; font-weight: bold;
-            display: flex; align-items: center; justify-content: flex-start;
-            padding: 0 15px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .category-btn .icon { font-size: 24px; margin-right: 10px; }
-
-        .btn-book { background-color: #82C471; }
-        .btn-diet { background-color: #F9B252; }
-        .btn-daily { background-color: #5B9DED; }
-        .btn-food { background-color: #EF6C85; }
-
-        .adhd-mode-btn {
-            width: 180px; height: 70px; background-color: var(--adhd-blue);
-            color: white; border-radius: 35px; border: none;
-            font-size: 20px; font-weight: 900; margin-top: 40px;
-            box-shadow: 0 6px 0 #357ABD; cursor: pointer; z-index: 2000;
-        }
-
-        .record-section { width: 90%; margin-top: 40px; text-align: left; }
-        .record-section h3 { font-size: 12px; color: var(--text-sub); letter-spacing: 1px; margin-bottom: 15px; }
+        :root { --bg-color: #F2F2F2; --card-bg: #FFFFFF; --text-main: #444; --text-sub: #BBBBBB; --border-color: #EEEEEE; }
+        body.dark-mode { --bg-color: #121212; --card-bg: #1E1E1E; --text-main: #FFFFFF; --text-sub: #888; --border-color: #333; }
+        body { margin: 0; padding: 0; font-family: 'Apple SD Gothic Neo', sans-serif; background: var(--bg-color); color: var(--text-main); display: flex; flex-direction: column; align-items: center; min-height: 100vh; transition: 0.3s; }
         
-        .record-card {
-            border-bottom: 1px solid var(--border-color); padding: 15px 0;
-            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-        }
-        .record-info b { font-size: 15px; color: var(--text-main); }
-        .record-info p { font-size: 12px; color: var(--text-sub); margin: 4px 0 0 0; }
+        .header { width: 90%; max-width: 400px; margin-top: 40px; display: flex; justify-content: space-between; align-items: center; }
+        .adhd-btn { padding: 10px 20px; border-radius: 50px; border: 2px solid #82C471; background: none; color: var(--text-main); font-weight: bold; cursor: pointer; }
 
-        .bottom-nav {
-            width: 100%; height: 65px; background: var(--card-bg);
-            position: fixed; bottom: 0; display: flex;
-            justify-content: space-around; align-items: center;
-            border-top: 1px solid var(--border-color); font-size: 24px; color: var(--adhd-blue); z-index: 1000;
+        /* 아이콘 영역 */
+        #adhd-area { position: relative; width: 100%; max-width: 400px; height: 180px; margin-top: 20px; }
+        .cat-btn { 
+            position: absolute; width: 75px; height: 75px; border-radius: 25px; 
+            display: flex; align-items: center; justify-content: center; font-size: 28px;
+            text-decoration: none; box-shadow: 0 10px 20px rgba(0,0,0,0.05); transition: transform 0.2s;
         }
 
-        .modal { display: none; position: fixed; z-index: 4000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); }
-        .modal-content { background: var(--card-bg); margin: 25% auto; padding: 25px; width: 80%; max-width: 320px; border-radius: 25px; position: relative; color: var(--text-main); }
-        .delete-btn { background: #ff8a80; color: white; border: none; width: 100%; padding: 12px; border-radius: 12px; margin-top: 20px; font-weight: bold; cursor: pointer; }
+        /* 피드 리스트 */
+        .feed-container { width: 90%; max-width: 400px; margin-top: 30px; padding-bottom: 50px; }
+        .feed-title { font-size: 14px; font-weight: bold; color: var(--text-sub); margin-bottom: 15px; }
+        .record-card { 
+            background: var(--card-bg); border-radius: 20px; padding: 20px; margin-bottom: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.03); position: relative; border: 1px solid var(--border-color);
+        }
+        .record-card .date { font-size: 11px; color: var(--text-sub); margin-bottom: 6px; font-weight: bold; }
+        .record-card .title { font-size: 16px; font-weight: bold; }
+        .delete-btn { position: absolute; top: 18px; right: 18px; border: none; background: none; color: var(--text-sub); cursor: pointer; font-size: 16px; }
     </style>
 </head>
 <body>
 
-    <div class="dark-toggle" onclick="toggleDarkMode()" id="darkBtn">🌙</div>
-
-    <div class="logo">
-        <span>A</span><span>D</span><span>H</span><span>D</span><span>I</span><span>A</span><span>R</span><span>Y</span>
+    <div class="header">
+        <h1 style="font-weight: 900; margin: 0;">ADHDIARY</h1>
+        <button onclick="toggleDarkMode()" style="background:none; border:none; font-size: 22px; cursor:pointer;">🌓</button>
     </div>
 
-    <div class="main-card">
-        <div class="grid-container" id="boundary">
-            <button class="category-btn btn-book" id="btn1" onclick="location.href='/book'">
-                <span class="icon">📖</span> 책 기록
-            </button>
-            <button class="category-btn btn-diet" id="btn2" onclick="location.href='/diet'">
-                <span class="icon">⚖️</span> 다이어트
-            </button>
-            <button class="category-btn btn-daily" id="btn3" onclick="location.href='/daily'">
-                <span class="icon">☕</span> 일상
-            </button>
-            <button class="category-btn btn-food" id="btn4" onclick="location.href='/food'">
-                <span class="icon">🍴</span> 맛집
-            </button>
-        </div>
-
-        <button class="adhd-mode-btn" onclick="toggleADHD()">ADHD-MODE</button>
-
-        <div class="record-section">
-            <h3>RECENT RECORDS</h3>
-            {% for record in records %}
-            <div class="record-card" onclick="openModal('{{ record.id }}', '{{ record.type }}')">
-                <div class="record-info">
-                    <b>{{ record.title }}</b>
-                    <p>{{ record.date }}</p>
-                </div>
-                <div style="color: var(--text-sub);">〉</div>
-            </div>
-            {% endfor %}
-        </div>
+    <div style="margin-top: 20px;">
+        <button class="adhd-btn" onclick="startADHD()">ADHD MODE</button>
     </div>
 
-    <div class="bottom-nav">
-        <div onclick="location.href='/'"></div><div></div><div></div><div></div>
+    <div id="adhd-area">
+        <a href="/daily" class="cat-btn" style="background:#E8F2FF; left:10px; top:40px;">😊</a>
+        <a href="/diet" class="cat-btn" style="background:#FFF4E5; left:110px; top:40px;">⚖️</a>
+        <a href="/book" class="cat-btn" style="background:#EAF7E8; left:210px; top:40px;">📖</a>
+        <a href="/food" class="cat-btn" style="background:#FFE9EC; left:310px; top:40px;">🍴</a>
     </div>
 
-    <div id="detailModal" class="modal">
-        <div class="modal-content">
-            <h2 id="modalTitle" style="margin:0; font-size:18px"></h2>
-            <p id="modalDate" style="color:var(--text-sub); font-size:11px; margin-bottom:15px"></p>
-            <div id="modalMemo" style="font-size:14px; line-height:1.6; border-top:1px solid var(--border-color); padding-top:15px; min-height:80px"></div>
-            <form id="deleteForm" method="post">
-                <button type="submit" class="delete-btn">삭제하기</button>
+    <div class="feed-container">
+        <div class="feed-title">RECENT ACTIVITY</div>
+        {% for r in records %}
+        <div class="record-card">
+            <div class="date">{{ r.date }}</div>
+            <div class="title">{{ r.title }}</div>
+            
+            <form action="/delete_{{ r.type }}/{{ r.id }}" method="post" onsubmit="return confirm('지울까요?');">
+                <button type="submit" class="delete-btn">✕</button>
             </form>
-            <button onclick="closeModal()" style="width:100%; margin-top:10px; border:none; background:none; color:var(--text-sub); cursor:pointer">닫기</button>
         </div>
+        {% else %}
+        <p style="text-align: center; color: var(--text-sub); font-size: 13px;">아직 기록이 없습니다.</p>
+        {% endfor %}
     </div>
 
     <script>
-        // 1. 다크모드 로직
+        // 다크모드
         function toggleDarkMode() {
-            const body = document.body;
-            body.classList.toggle('dark-mode');
-            const isDark = body.classList.contains('dark-mode');
-            localStorage.setItem('darkMode', isDark);
-            document.getElementById('darkBtn').innerText = isDark ? '☀️' : '🌙';
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
         }
+        if (localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
 
-        if (localStorage.getItem('darkMode') === 'true') {
-            document.body.classList.add('dark-mode');
-            document.getElementById('darkBtn').innerText = '☀️';
-        }
+        // ADHD 튕기기 애니메이션 (undefined 오류를 일으킬만한 요소 제거)
+        let isAnimating = false;
+        function startADHD() {
+            if (isAnimating) return;
+            isAnimating = true;
+            
+            const btns = document.querySelectorAll('.cat-btn');
+            const area = document.getElementById('adhd-area');
+            const areaWidth = area.clientWidth;
+            const areaHeight = area.clientHeight;
 
-        // 2. ADHD 모드 애니메이션
-        let isADHD = false;
-        let animationId;
-        const buttons = document.querySelectorAll('.category-btn');
-        let particles = [];
+            btns.forEach(btn => {
+                let x = btn.offsetLeft;
+                let y = btn.offsetTop;
+                let dx = (Math.random() - 0.5) * 10;
+                let dy = (Math.random() - 0.5) * 10;
 
-        function toggleADHD() {
-            isADHD = !isADHD;
-            if (isADHD) {
-                particles = [];
-                buttons.forEach((btn) => {
-                    const rect = btn.getBoundingClientRect();
-                    particles.push({
-                        el: btn,
-                        x: rect.left,
-                        y: rect.top,
-                        width: rect.width,
-                        height: rect.height,
-                        dx: (Math.random() - 0.5) * 10,
-                        dy: (Math.random() - 0.5) * 10
-                    });
-                    btn.style.width = rect.width + 'px';
-                    btn.style.height = rect.height + 'px';
-                    btn.style.position = 'fixed';
-                    btn.style.left = '0px';
-                    btn.style.top = '0px';
-                    btn.style.zIndex = '1500';
-                });
-                animate();
-            } else {
-                location.reload(); 
-            }
-        }
+                function move() {
+                    x += dx; y += dy;
+                    if (x <= 0 || x >= areaWidth - 75) dx *= -1;
+                    if (y <= 0 || y >= areaHeight - 75) dy *= -1;
 
-        function animate() {
-            if (!isADHD) return;
-            particles.forEach(p => {
-                p.x += p.dx;
-                p.y += p.dy;
-                if (p.x <= 0 || p.x + p.width >= window.innerWidth) p.dx *= -1;
-                if (p.y <= 0 || p.y + p.height >= window.innerHeight - 65) p.dy *= -1;
-                p.el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0)`;
+                    btn.style.left = x + 'px';
+                    btn.style.top = y + 'px';
+                    requestAnimationFrame(move);
+                }
+                move();
             });
-            animationId = requestAnimationFrame(animate);
-        }
-
-        // 3. 모달 로직
-        async function openModal(id, type) {
-            try {
-                const res = await fetch(`/${type}/${id}`);
-                const data = await res.json();
-                document.getElementById('modalTitle').innerText = data.title;
-                document.getElementById('modalDate').innerText = data.date;
-                document.getElementById('modalMemo').innerText = data.memo;
-                document.getElementById('deleteForm').action = `/delete_${type}/${id}`;
-                document.getElementById('detailModal').style.display = "block";
-            } catch (e) {
-                alert("기록을 불러오는데 실패했습니다.");
-            }
-        }
-
-        function closeModal() {
-            document.getElementById('detailModal').style.display = "none";
         }
     </script>
 </body>
 </html>
-
