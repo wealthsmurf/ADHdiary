@@ -84,31 +84,53 @@
         .record-scroll-area::-webkit-scrollbar { width: 4px; }
         .record-scroll-area::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
 
-        /* --- 레코드 카드 및 내용 칸 수정 --- */
+        /* 목록 카드 스타일 */
         .record-card {
-            background: var(--bg-color); border-radius: 20px; padding: 18px;
-            margin-bottom: 20px; display: flex; flex-direction: column;
-            position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+            background: var(--bg-color); border-radius: 18px; padding: 15px;
+            margin-bottom: 12px; cursor: pointer; border: 1px solid transparent;
         }
-        .record-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-        .record-info b { font-size: 16px; color: var(--text-main); display: block; }
-        .record-info p { font-size: 12px; color: var(--text-sub); margin: 3px 0 0 0; }
+        .record-card:active { transform: scale(0.98); background: var(--border-color); }
+        .record-info b { font-size: 15px; color: var(--text-main); display: block; }
+        .record-info p { font-size: 11px; color: var(--text-sub); margin: 3px 0 0 0; }
 
-        /* 내용 확인 칸 (크기 대폭 확장) */
-        .record-content { 
-            font-size: 14px; color: var(--text-main); line-height: 1.6;
-            background: var(--card-bg); padding: 15px; border-radius: 15px;
+        /* --- [강조] 모달 팝업 및 스크롤 영역 설정 --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); display: none;
+            justify-content: center; align-items: center; z-index: 5000;
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+            background: var(--card-bg); width: 85%; max-width: 350px;
+            border-radius: 30px; padding: 25px; 
+            display: flex; flex-direction: column; 
+            max-height: 75vh; /* 화면 높이의 75%까지만 커짐 */
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+        }
+
+        .modal-header { flex-shrink: 0; margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 15px; }
+        .modal-title { font-size: 22px; font-weight: 900; color: var(--adhd-blue); }
+        .modal-date { font-size: 13px; color: var(--text-sub); margin-top: 5px; }
+
+        /* [핵심] 내용 스크롤 영역 */
+        .modal-body { 
+            font-size: 16px; line-height: 1.7; color: var(--text-main);
+            flex: 1; /* 남은 공간 모두 차지 */
+            overflow-y: auto; /* 내용 길면 스크롤 생성 */
+            padding-right: 10px; /* 스크롤바와 텍스트 간격 */
             white-space: pre-wrap; word-break: break-all;
-            min-height: 80px; /* 최소 높이 확보 */
-            max-height: 300px; /* 최대 높이 확장 */
-            overflow-y: auto;
-            border: 1px solid var(--border-color);
+            -webkit-overflow-scrolling: touch; /* 모바일 부드러운 스크롤 */
         }
+        
+        /* 스크롤바 디자인 */
+        .modal-body::-webkit-scrollbar { width: 6px; }
+        .modal-body::-webkit-scrollbar-track { background: transparent; }
+        .modal-body::-webkit-scrollbar-thumb { background: var(--adhd-blue); border-radius: 10px; opacity: 0.5; }
 
-        .direct-del-btn {
-            background: none; border: none; color: #ff8a80;
-            font-size: 20px; cursor: pointer; padding: 5px;
-        }
+        .modal-footer { flex-shrink: 0; display: flex; gap: 10px; margin-top: 20px; }
+        .btn-close { flex: 1; padding: 15px; border-radius: 15px; border: none; background: var(--border-color); color: var(--text-main); font-weight: bold; cursor: pointer; }
+        .btn-del { flex: 0.5; background: #ff8a80; color: white; border: none; padding: 15px; border-radius: 15px; font-weight: bold; cursor: pointer; }
 
         .bottom-nav {
             width: 100%; height: 65px; background: var(--card-bg);
@@ -148,32 +170,31 @@
             <h3>RECENT RECORDS</h3>
             <div class="record-scroll-area">
                 {% for record in records %}
-                <div class="record-card">
-                    <div class="record-header">
-                        <div class="record-info">
-                            <b>{{ record.title if record.title else record.type.upper() }}</b>
-                            <p>{{ record.date }} | {{ record.type.upper() }}</p>
-                        </div>
-                        <form action="/delete_{{ record.type }}/{{ record.id }}" method="post" style="margin:0;">
-                            <button type="submit" class="direct-del-btn" onclick="return confirm('삭제할까요?')">🗑️</button>
-                        </form>
-                    </div>
-                    
-                    <div class="record-content">
-                        {% if record.memo %}
-                            {{ record.memo }}
-                        {% elif record.meal %}
-                            {{ record.meal }}
-                        {% elif record.emoji %}
-                            오늘의 기분: {{ record.emoji }}
-                        {% elif record.weight %}
-                            몸무게: {{ record.weight }}kg
-                        {% else %}
-                            <span style="color:var(--text-sub)">상세 내용이 없습니다.</span>
-                        {% endif %}
+                <div class="record-card" onclick="openModal('{{ record.title if record.title else record.type.upper() }}', '{{ record.date }}', '{{ record.type }}', '{{ record.id }}', `{% if record.memo %}{{ record.memo }}{% elif record.meal %}{{ record.meal }}{% elif record.emoji %}오늘의 기분: {{ record.emoji }}{% elif record.weight %}몸무게: {{ record.weight }}kg{% else %}상세 내용이 없습니다.{% endif %}`)">
+                    <div class="record-info">
+                        <b>{{ record.title if record.title else record.type.upper() }}</b>
+                        <p>{{ record.date }} | {{ record.type.upper() }}</p>
                     </div>
                 </div>
                 {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="detailModal" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-title" id="mTitle">제목</div>
+                <div class="modal-date" id="mDate">날짜</div>
+            </div>
+            
+            <div class="modal-body" id="mBody">내용이 들어갑니다.</div>
+            
+            <div class="modal-footer">
+                <button class="btn-close" onclick="closeModal()">닫기</button>
+                <form id="deleteForm" method="post" style="flex: 0.5;">
+                    <button type="submit" class="btn-del" onclick="return confirm('정말 삭제할까요?')">삭제</button>
+                </form>
             </div>
         </div>
     </div>
@@ -183,7 +204,23 @@
     </div>
 
     <script>
-        // 1. 다크모드
+        // 모달 열기 및 내용 채우기
+        function openModal(title, date, type, id, content) {
+            document.getElementById('mTitle').innerText = title;
+            document.getElementById('mDate').innerText = date;
+            document.getElementById('mBody').innerText = content;
+            document.getElementById('mBody').scrollTop = 0; // 열 때마다 스크롤 맨 위로
+            document.getElementById('deleteForm').action = `/delete_${type}/${id}`;
+            document.getElementById('detailModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // 뒷배경 스크롤 방지
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // 다크모드
         function toggleDarkMode() {
             const body = document.body;
             body.classList.toggle('dark-mode');
@@ -196,9 +233,8 @@
             document.getElementById('darkBtn').innerText = '☀️';
         }
 
-        // 2. ADHD 모드 (날아다니기 유지)
+        // ADHD 모드
         let isADHD = false;
-        let animationId;
         const buttons = document.querySelectorAll('.category-btn');
         let particles = [];
 
@@ -228,7 +264,7 @@
                 if (p.y <= 0 || p.y + p.height >= window.innerHeight - 65) p.dy *= -1;
                 p.el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0)`;
             });
-            animationId = requestAnimationFrame(animate);
+            requestAnimationFrame(animate);
         }
     </script>
 </body>
