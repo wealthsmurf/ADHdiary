@@ -26,7 +26,6 @@
             margin: 0; padding: 0; font-family: 'Apple SD Gothic Neo', sans-serif;
             background-color: var(--bg-color); color: var(--text-main);
             display: flex; flex-direction: column; align-items: center; min-height: 100vh;
-            overflow-x: hidden; /* ADHD 효과 시 스크롤바 방지 */
         }
 
         .header {
@@ -40,7 +39,7 @@
         .form-card {
             background: var(--card-bg); width: 90%; max-width: 380px;
             border-radius: 30px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            box-sizing: border-box; margin-bottom: 30px; position: relative; z-index: 100;
+            box-sizing: border-box; margin-bottom: 30px;
         }
 
         .input-group { margin-bottom: 15px; }
@@ -66,22 +65,16 @@
             width: 100%; height: 50px; background: var(--book-green);
             color: white; border: none; border-radius: 12px;
             font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
-            transition: all 0.3s;
         }
 
-        .submit-btn:disabled { background: var(--text-sub); cursor: not-allowed; }
-
-        /* 목록 스타일 */
+        /* 목록 스타일 (메인/일상과 통일) */
         .record-list { width: 90%; max-width: 380px; padding-bottom: 50px; }
         .record-card {
             background: var(--card-bg); padding: 15px; border-radius: 20px;
             margin-bottom: 12px; cursor: pointer; display: flex; align-items: center;
             box-shadow: 0 4px 10px rgba(0,0,0,0.02); transition: transform 0.2s;
-            position: relative;
         }
-
-        /* 튕기는 효과를 위한 클래스 */
-        .bouncing { position: fixed !important; z-index: 50; pointer-events: none; width: 340px !important; }
+        .record-card:active { transform: scale(0.98); }
 
         .thumb-area { width: 45px; height: 60px; border-radius: 6px; margin-right: 15px; overflow: hidden; flex-shrink: 0; }
         .thumb-area img { width: 100%; height: 100%; object-fit: cover; }
@@ -90,7 +83,7 @@
         .record-info b { font-size: 15px; color: var(--text-main); display: block; }
         .record-info p { font-size: 11px; color: var(--text-sub); margin-top: 3px; }
 
-        /* 모달 스타일 생략 없이 유지 */
+        /* 모달 스타일 */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); display: none;
@@ -105,8 +98,15 @@
         .modal-header { flex-shrink: 0; margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 15px; }
         .modal-title { font-size: 20px; font-weight: 900; color: var(--book-green); }
         .modal-date { font-size: 12px; color: var(--text-sub); margin-top: 5px; }
-        .modal-body { font-size: 15px; line-height: 1.7; color: var(--text-main); flex: 1; overflow-y: auto; white-space: pre-wrap; }
-        .modal-body img { width: 60%; display: block; margin: 0 auto 15px auto; border-radius: 10px; }
+        
+        .modal-body { 
+            font-size: 15px; line-height: 1.7; color: var(--text-main);
+            flex: 1; overflow-y: auto; padding-right: 5px; white-space: pre-wrap;
+        }
+        .modal-body img { width: 60%; display: block; margin: 0 auto 15px auto; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .modal-body::-webkit-scrollbar { width: 4px; }
+        .modal-body::-webkit-scrollbar-thumb { background: var(--book-green); border-radius: 10px; }
+
         .modal-footer { flex-shrink: 0; display: flex; gap: 10px; margin-top: 20px; }
         .btn-close { flex: 1; padding: 15px; border-radius: 15px; border: none; background: var(--border-color); color: var(--text-main); font-weight: bold; cursor: pointer; }
         .btn-del { flex: 0.5; background: #ff8a80; color: white; border: none; padding: 15px; border-radius: 15px; font-weight: bold; cursor: pointer; }
@@ -121,7 +121,7 @@
     </div>
 
     <div class="form-card">
-        <form id="bookForm" action="/save_book" method="post" enctype="multipart/form-data">
+        <form action="/save_book" method="post" enctype="multipart/form-data">
             <div class="input-group">
                 <label>BOOK TITLE</label>
                 <input type="text" name="title" placeholder="책 제목을 입력하세요" required>
@@ -134,7 +134,9 @@
                 <label>BOOK COVER (PHOTO)</label>
                 <div class="file-wrapper" onclick="document.getElementById('image').click()">
                     <img id="preview" src="#">
-                    <div id="file-msg" style="text-align: center; color: var(--text-sub); font-size: 12px;">📸 표지 추가</div>
+                    <div id="file-msg" style="text-align: center; color: var(--text-sub); font-size: 12px;">
+                        📸 표지 추가
+                    </div>
                     <input type="file" id="image" name="image" accept="image/*" style="display:none;" onchange="previewImage(this)">
                 </div>
             </div>
@@ -142,18 +144,27 @@
                 <label>MEMO / REVIEW</label>
                 <textarea name="memo" placeholder="인상 깊었던 구절이나 감상을 적어주세요." required></textarea>
             </div>
-            <button type="submit" class="submit-btn" id="submitBtn">기록하기</button>
+            <button type="submit" class="submit-btn">기록하기</button>
         </form>
     </div>
 
-    <div class="record-list" id="recordList">
+    <div class="record-list">
         <h3 style="font-size: 11px; color: var(--text-sub); letter-spacing: 1px; margin-bottom: 15px;">MY READING LOGS</h3>
         {% for record in my_records %}
-        <div class="record-card bounce-item" onclick="openModal(this)"
-             data-title="{{ record.title }}" data-date="{{ record.date }}" data-id="{{ record.id }}"
-             data-memo="{{ record.memo }}" data-image="{{ record.image_url if record.image_url else '' }}">
+        <div class="record-card" 
+             onclick="openModal(this)"
+             data-title="{{ record.title }}"
+             data-date="{{ record.date }}"
+             data-id="{{ record.id }}"
+             data-memo="{{ record.memo }}"
+             data-image="{{ record.image_url if record.image_url else '' }}">
+            
             <div class="thumb-area">
-                {% if record.image_url %}<img src="{{ record.image_url }}">{% else %}<div class="thumb-placeholder">📖</div>{% endif %}
+                {% if record.image_url %}
+                <img src="{{ record.image_url }}">
+                {% else %}
+                <div class="thumb-placeholder">📖</div>
+                {% endif %}
             </div>
             <div class="record-info">
                 <b>{{ record.title }}</b>
@@ -183,88 +194,17 @@
     </div>
 
     <script>
-        // --- 1. 클라이언트 측 초고속 압축 로직 ---
-        async function compressImage(file) {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.src = e.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const MAX_SIZE = 600; 
-                        let width = img.width;
-                        let height = img.height;
-                        if (width > height) {
-                            if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
-                        } else {
-                            if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
-                        }
-                        canvas.width = width; canvas.height = height;
-                        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-                        canvas.toBlob((blob) => {
-                            resolve(new File([blob], "upload.jpg", { type: 'image/jpeg' }));
-                        }, 'image/jpeg', 0.5); // 품질 0.5로 용량 대폭 감소
-                    };
-                };
-            });
-        }
-
-        // --- 2. ADHD 전용: 카테고리 튕기기 효과 ---
-        function startADHDEffect() {
-            const items = document.querySelectorAll('.bounce-item');
-            items.forEach(item => {
-                item.classList.add('bouncing');
-                let x = Math.random() * (window.innerWidth - 300);
-                let y = Math.random() * (window.innerHeight - 100);
-                let dx = (Math.random() - 0.5) * 20; // 속도감 있게 설정
-                let dy = (Math.random() - 0.5) * 20;
-
-                function animate() {
-                    x += dx; y += dy;
-                    if (x <= 0 || x >= window.innerWidth - 340) dx *= -1;
-                    if (y <= 0 || y >= window.innerHeight - 100) dy *= -1;
-                    item.style.left = x + 'px';
-                    item.style.top = y + 'px';
-                    requestAnimationFrame(animate);
-                }
-                animate();
-            });
-        }
-
-        // --- 3. 폼 제출 이벤트 통합 ---
-        document.getElementById('bookForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('submitBtn');
-            const fileInput = document.getElementById('image');
-            
-            btn.disabled = true;
-            btn.innerText = '압축 및 튕기는 중... 🌀';
-            
-            if (fileInput.files.length > 0) {
-                const compressed = await compressImage(fileInput.files[0]);
-                const dt = new DataTransfer();
-                dt.items.add(compressed);
-                fileInput.files = dt.files;
-            }
-
-            startADHDEffect(); // 튕기기 시작
-            
-            // 시각적 효과를 위해 아주 잠깐 대기 후 전송
-            setTimeout(() => this.submit(), 300);
-        });
-
-        // --- 기존 기능 유지 ---
         function openModal(element) {
             const title = element.getAttribute('data-title');
             const date = element.getAttribute('data-date');
             const id = element.getAttribute('data-id');
             const memo = element.getAttribute('data-memo');
             const imageUrl = element.getAttribute('data-image');
+
             document.getElementById('mTitle').innerText = title;
             document.getElementById('mDate').innerText = date;
             document.getElementById('mMemo').innerText = memo;
+            
             const imgContainer = document.getElementById('mImageContainer');
             imgContainer.innerHTML = ''; 
             if (imageUrl && imageUrl !== '') {
@@ -272,6 +212,7 @@
                 img.src = imageUrl;
                 imgContainer.appendChild(img);
             }
+
             document.getElementById('deleteForm').action = `/delete_book/${id}`;
             document.getElementById('detailModal').style.display = 'flex';
             document.body.style.overflow = 'hidden';
@@ -287,7 +228,7 @@
             const msg = document.getElementById('file-msg');
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = e => {
+                reader.onload = function(e) {
                     preview.src = e.target.result;
                     preview.style.display = 'block';
                     msg.style.display = 'none';
@@ -297,7 +238,9 @@
         }
 
         document.getElementById('currentDate').value = new Date().toISOString().substring(0, 10);
-        if (localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
     </script>
 </body>
 </html>
