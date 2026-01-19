@@ -1,5 +1,7 @@
 import os
 import uuid
+from io import BytesIO
+from PIL import Image, ExifTags # 이미지 압축 및 회전 방지를 위해 추가
 from fastapi import FastAPI, Request, Form, Depends, HTTPException, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -56,16 +58,63 @@ def get_current_user(request: Request):
     uid = request.cookies.get("user_id")
     return int(uid) if uid else None
 
+# 핵심: 이미지 압축 및 리사이징 함수
 async def save_file(file: UploadFile):
     if not file or not file.filename: return None
-    ext = os.path.splitext(file.filename)[1]
-    filename = f"{uuid.uuid4()}{ext}"
-    path = os.path.join(UPLOAD_DIR, filename)
-    with open(path, "wb") as f:
-        f.write(await file.read())
-    return f"/static/uploads/{filename}"
+    
+    # 원본 파일 읽기
+    contents = await file.read()
+    ext = os.path.splitext(file.filename)[1].lower()
+    
+    # 이미지 파일이 아니면 그냥 저장
+    if ext not in ['.jpg', '.jpeg', '.png', '.webp']:
+        filename = f"{uuid.uuid4()}{ext}"
+        path = os.path.join(UPLOAD_DIR, filename)
+        with open(path, "wb") as f:
+            f.write(contents)
+        return f"/static/uploads/{filename}"
 
-# 4. 로그인 및 회원가입
+    try:
+        # 이미지 열기
+        img = Image.open(BytesIO(contents))
+
+        # 스마트폰 사진 회전 정보(EXIF) 처리
+        try:
+            for orientation in ExifTags.TAGS.keys():
+                if ExifTags.TAGS[orientation] == 'Orientation': break
+            exif = dict(img._getexif().items())
+            if exif[orientation] == 3: img = img.rotate(180, expand=True)
+            elif exif[orientation] == 6: img = img.rotate(270, expand=True)
+            elif exif[orientation] == 8: img = img.rotate(90, expand=True)
+        except (AttributeError, KeyError, IndexError): pass
+
+        # 리사이징 (최대 가로 1024px 기준)
+        max_size = 1024
+        if img.width > max_size or img.height > max_size:
+            img.thumbnail((max_size, max_size), Image.LANCZOS)
+
+        # 투명도 있는 PNG 등을 위한 RGB 변환
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+
+        # 압축하여 JPEG로 저장
+        filename = f"{uuid.uuid4()}.jpg"
+        path = os.path.join(UPLOAD_DIR, filename)
+        
+        # 품질 75%로 압축 저장
+        img.save(path, "JPEG", quality=75, optimize=True)
+        return f"/static/uploads/{filename}"
+
+    except Exception as e:
+        # 에러 발생 시 원본 저장 (Fallback)
+        print(f"이미지 압축 오류: {e}")
+        filename = f"{uuid.uuid4()}{ext}"
+        path = os.path.join(UPLOAD_DIR, filename)
+        with open(path, "wb") as f:
+            f.write(contents)
+        return f"/static/uploads/{filename}"
+
+# 4. 로그인 및 회원가입 로직 (기존과 동일)
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, error: str = None):
     return templates.TemplateResponse("login.html", {"request": request, "error": error})
@@ -90,7 +139,7 @@ async def signup(username: str = Form(...), password: str = Form(...), db: Sessi
     db.add(User(username=username, password=password)); db.commit()
     return RedirectResponse(url="/login?error=registered", status_code=303)
 
-# 5. 메인 피드 (메모 데이터 추가 핵심 수정)
+# 5. 메인 피드
 @app.get("/", response_class=HTMLResponse)
 async def main_page(request: Request, db: Session = Depends(get_db), user_id=Depends(get_current_user)):
     if user_id is None: return RedirectResponse(url="/login")
@@ -101,10 +150,8 @@ async def main_page(request: Request, db: Session = Depends(get_db), user_id=Dep
     f = db.query(FoodRecord).filter(FoodRecord.owner_id == user_id).all()
     
     recs = []
-    # HTML에서 {{ record.memo }}로 접근 가능하도록 모든 카테고리에 'memo' 필드 명시적 추가
     for r in b: recs.append({"id": r.id, "type": "book", "title": f"📖 {r.title}", "date": r.date, "memo": r.memo})
     for r in d: 
-        # 다이어트는 메모가 없으면 식단(meal)을 대신 보여줌
         memo_val = r.memo if r.memo else (f"식단: {r.meal}" if r.meal else "")
         recs.append({"id": r.id, "type": "diet", "title": f"⚖️ {r.weight}kg 기록", "date": r.date, "memo": memo_val})
     for r in dy: recs.append({"id": r.id, "type": "daily", "title": f"{r.emoji} 일상 기록", "date": r.date, "memo": r.memo})
@@ -126,7 +173,7 @@ async def get_detail(type: str, record_id: int, db: Session = Depends(get_db), u
     elif type == "food": data["title"] = f"🍴 {r.place}"
     return JSONResponse(data)
 
-# 7. 저장 로직
+# 7. 저장 로직 (압축된 save_file 함수 사용)
 @app.post("/save_book")
 async def save_book(title:str=Form(...), date:str=Form(...), memo:str=Form(...), image:UploadFile=File(None), uid=Depends(get_current_user), db:Session=Depends(get_db)):
     img = await save_file(image)
@@ -151,7 +198,7 @@ async def save_food(place:str=Form(...), rating:str=Form(...), memo:str=Form(...
     db.add(FoodRecord(place=place, rating=rating, memo=memo, date=date, image_url=img, owner_id=uid)); db.commit()
     return RedirectResponse("/food", 303)
 
-# 8. 삭제 및 상세 뷰
+# 8. 삭제 및 뷰 로직 (기존과 동일)
 @app.post("/delete_{type}/{record_id}")
 async def delete_rec(type: str, record_id: int, db: Session = Depends(get_db), uid=Depends(get_current_user)):
     models = {"book": BookRecord, "diet": DietRecord, "daily": DailyRecord, "food": FoodRecord}
