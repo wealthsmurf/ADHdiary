@@ -6,7 +6,6 @@
     <title>ADHDIARY</title>
     <style>
         :root {
-            /* 라이트모드 변수 */
             --bg-color: #F2F2F2;
             --card-bg: #FFFFFF;
             --text-main: #444444;
@@ -16,7 +15,6 @@
         }
 
         body.dark-mode {
-            /* 다크모드 변수 */
             --bg-color: #121212;
             --card-bg: #1E1E1E;
             --text-main: #FFFFFF;
@@ -27,11 +25,10 @@
         body { 
             margin: 0; padding: 0; font-family: 'Apple SD Gothic Neo', sans-serif;
             background-color: var(--bg-color); display: flex; flex-direction: column;
-            align-items: center; min-height: 100vh; overflow-x: hidden;
+            align-items: center; height: 100vh; overflow: hidden;
             color: var(--text-main); transition: background-color 0.3s, color 0.3s;
         }
 
-        /* 다크모드 토글 버튼 */
         .dark-toggle {
             position: fixed; top: 20px; right: 20px; width: 45px; height: 45px;
             background: var(--card-bg); border-radius: 50%; display: flex;
@@ -39,7 +36,7 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 3000; font-size: 20px;
         }
 
-        .logo { margin-top: 40px; font-size: 36px; font-weight: 900; letter-spacing: 5px; text-align: center; }
+        .logo { margin-top: 40px; font-size: 36px; font-weight: 900; letter-spacing: 5px; text-align: center; flex-shrink: 0; }
         .logo span:nth-child(1), .logo span:nth-child(2) { color: #E88385; }
         .logo span:nth-child(3), .logo span:nth-child(4) { color: #F9B252; }
         .logo span:nth-child(5), .logo span:nth-child(6) { color: #82C471; }
@@ -48,13 +45,14 @@
         .main-card {
             background: var(--card-bg); width: 90%; max-width: 380px; margin-top: 30px;
             border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            display: flex; flex-direction: column; align-items: center; padding-bottom: 20px;
-            flex-grow: 1; margin-bottom: 80px; transition: background 0.3s;
+            display: flex; flex-direction: column; align-items: center; 
+            flex: 1; min-height: 0; margin-bottom: 80px; transition: background 0.3s;
+            padding: 0 20px; box-sizing: border-box;
         }
 
         .grid-container {
-            display: grid; grid-template-columns: 1fr 1fr;
-            gap: 12px; width: 90%; margin-top: 25px; position: relative; min-height: 140px;
+            display: grid; grid-template-columns: 1fr 1fr; flex-shrink: 0;
+            gap: 12px; width: 100%; margin-top: 25px; position: relative; min-height: 140px;
         }
 
         .category-btn {
@@ -64,28 +62,48 @@
             padding: 0 15px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         .category-btn .icon { font-size: 24px; margin-right: 10px; }
-
         .btn-book { background-color: #82C471; }
         .btn-diet { background-color: #F9B252; }
         .btn-daily { background-color: #5B9DED; }
         .btn-food { background-color: #EF6C85; }
 
         .adhd-mode-btn {
-            width: 180px; height: 70px; background-color: var(--adhd-blue);
+            flex-shrink: 0; width: 180px; height: 70px; background-color: var(--adhd-blue);
             color: white; border-radius: 35px; border: none;
-            font-size: 20px; font-weight: 900; margin-top: 40px;
+            font-size: 20px; font-weight: 900; margin-top: 20px;
             box-shadow: 0 6px 0 #357ABD; cursor: pointer; z-index: 2000;
         }
 
-        .record-section { width: 90%; margin-top: 40px; text-align: left; }
-        .record-section h3 { font-size: 12px; color: var(--text-sub); letter-spacing: 1px; margin-bottom: 15px; }
-        
-        .record-card {
-            border-bottom: 1px solid var(--border-color); padding: 15px 0;
-            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+        .record-section { 
+            width: 100%; margin-top: 30px; text-align: left; 
+            display: flex; flex-direction: column; flex: 1; min-height: 0; padding-bottom: 20px;
         }
-        .record-info b { font-size: 15px; color: var(--text-main); }
-        .record-info p { font-size: 12px; color: var(--text-sub); margin: 4px 0 0 0; }
+        .record-section h3 { font-size: 12px; color: var(--text-sub); letter-spacing: 1px; margin-bottom: 10px; flex-shrink: 0; }
+        
+        .record-scroll-area { overflow-y: auto; flex: 1; padding-right: 5px; }
+        .record-scroll-area::-webkit-scrollbar { width: 4px; }
+        .record-scroll-area::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+
+        .record-card {
+            background: var(--bg-color); border-radius: 18px; padding: 15px;
+            margin-bottom: 15px; display: flex; flex-direction: column;
+            position: relative;
+        }
+        .record-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .record-info b { font-size: 15px; color: var(--text-main); display: block; }
+        .record-info p { font-size: 11px; color: var(--text-sub); margin: 3px 0 0 0; }
+
+        .record-content { 
+            font-size: 13px; color: var(--text-main); line-height: 1.5;
+            background: var(--card-bg); padding: 10px; border-radius: 10px;
+            white-space: pre-wrap; word-break: break-all;
+            max-height: 120px; overflow-y: auto;
+        }
+
+        .direct-del-btn {
+            background: none; border: none; color: #ff8a80;
+            font-size: 18px; cursor: pointer; padding: 5px;
+        }
 
         .bottom-nav {
             width: 100%; height: 65px; background: var(--card-bg);
@@ -93,10 +111,6 @@
             justify-content: space-around; align-items: center;
             border-top: 1px solid var(--border-color); font-size: 24px; color: var(--adhd-blue); z-index: 1000;
         }
-
-        .modal { display: none; position: fixed; z-index: 4000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); }
-        .modal-content { background: var(--card-bg); margin: 25% auto; padding: 25px; width: 80%; max-width: 320px; border-radius: 25px; position: relative; color: var(--text-main); }
-        .delete-btn { background: #ff8a80; color: white; border: none; width: 100%; padding: 12px; border-radius: 12px; margin-top: 20px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -109,16 +123,16 @@
 
     <div class="main-card">
         <div class="grid-container" id="boundary">
-            <button class="category-btn btn-book" id="btn1" onclick="location.href='/book'">
+            <button class="category-btn btn-book" onclick="location.href='/book'">
                 <span class="icon">📖</span> 책 기록
             </button>
-            <button class="category-btn btn-diet" id="btn2" onclick="location.href='/diet'">
+            <button class="category-btn btn-diet" onclick="location.href='/diet'">
                 <span class="icon">⚖️</span> 다이어트
             </button>
-            <button class="category-btn btn-daily" id="btn3" onclick="location.href='/daily'">
+            <button class="category-btn btn-daily" onclick="location.href='/daily'">
                 <span class="icon">☕</span> 일상
             </button>
-            <button class="category-btn btn-food" id="btn4" onclick="location.href='/food'">
+            <button class="category-btn btn-food" onclick="location.href='/food'">
                 <span class="icon">🍴</span> 맛집
             </button>
         </div>
@@ -127,36 +141,44 @@
 
         <div class="record-section">
             <h3>RECENT RECORDS</h3>
-            {% for record in records %}
-            <div class="record-card" onclick="openModal('{{ record.id }}', '{{ record.type }}')">
-                <div class="record-info">
-                    <b>{{ record.title }}</b>
-                    <p>{{ record.date }}</p>
+            <div class="record-scroll-area">
+                {% for record in records %}
+                <div class="record-card">
+                    <div class="record-header">
+                        <div class="record-info">
+                            <b>{{ record.title if record.title else record.type.upper() }}</b>
+                            <p>{{ record.date }} | {{ record.type.upper() }}</p>
+                        </div>
+                        <form action="/delete_{{ record.type }}/{{ record.id }}" method="post" style="margin:0;">
+                            <button type="submit" class="direct-del-btn" onclick="return confirm('삭제할까요?')">🗑️</button>
+                        </form>
+                    </div>
+                    
+                    <div class="record-content">
+                        {% if record.memo %}
+                            {{ record.memo }}
+                        {% elif record.meal %}
+                            {{ record.meal }}
+                        {% elif record.emoji %}
+                            오늘의 기분: {{ record.emoji }}
+                        {% elif record.weight %}
+                            몸무게: {{ record.weight }}kg
+                        {% else %}
+                            <span style="color:var(--text-sub)">상세 내용이 없습니다.</span>
+                        {% endif %}
+                    </div>
                 </div>
-                <div style="color: var(--text-sub);">〉</div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
     </div>
 
     <div class="bottom-nav">
-        <div onclick="location.href='/'"></div><div></div><div></div><div></div>
-    </div>
-
-    <div id="detailModal" class="modal">
-        <div class="modal-content">
-            <h2 id="modalTitle" style="margin:0; font-size:18px"></h2>
-            <p id="modalDate" style="color:var(--text-sub); font-size:11px; margin-bottom:15px"></p>
-            <div id="modalMemo" style="font-size:14px; line-height:1.6; border-top:1px solid var(--border-color); padding-top:15px; min-height:80px"></div>
-            <form id="deleteForm" method="post">
-                <button type="submit" class="delete-btn">삭제하기</button>
-            </form>
-            <button onclick="closeModal()" style="width:100%; margin-top:10px; border:none; background:none; color:var(--text-sub); cursor:pointer">닫기</button>
-        </div>
+        <div onclick="location.href='/'">🏠</div><div></div><div></div><div></div>
     </div>
 
     <script>
-        // 1. 다크모드 로직
+        // 1. 다크모드
         function toggleDarkMode() {
             const body = document.body;
             body.classList.toggle('dark-mode');
@@ -164,13 +186,12 @@
             localStorage.setItem('darkMode', isDark);
             document.getElementById('darkBtn').innerText = isDark ? '☀️' : '🌙';
         }
-
         if (localStorage.getItem('darkMode') === 'true') {
             document.body.classList.add('dark-mode');
             document.getElementById('darkBtn').innerText = '☀️';
         }
 
-        // 2. ADHD 모드 애니메이션
+        // 2. ADHD 모드 (날아다니기 유지)
         let isADHD = false;
         let animationId;
         const buttons = document.querySelectorAll('.category-btn');
@@ -183,59 +204,27 @@
                 buttons.forEach((btn) => {
                     const rect = btn.getBoundingClientRect();
                     particles.push({
-                        el: btn,
-                        x: rect.left,
-                        y: rect.top,
-                        width: rect.width,
-                        height: rect.height,
-                        dx: (Math.random() - 0.5) * 10,
-                        dy: (Math.random() - 0.5) * 10
+                        el: btn, x: rect.left, y: rect.top, width: rect.width, height: rect.height,
+                        dx: (Math.random() - 0.5) * 15, dy: (Math.random() - 0.5) * 15
                     });
                     btn.style.width = rect.width + 'px';
                     btn.style.height = rect.height + 'px';
-                    btn.style.position = 'fixed';
-                    btn.style.left = '0px';
-                    btn.style.top = '0px';
-                    btn.style.zIndex = '1500';
+                    btn.style.position = 'fixed'; btn.style.left = '0px'; btn.style.top = '0px'; btn.style.zIndex = '1500';
                 });
                 animate();
-            } else {
-                location.reload(); 
-            }
+            } else { location.reload(); }
         }
 
         function animate() {
             if (!isADHD) return;
             particles.forEach(p => {
-                p.x += p.dx;
-                p.y += p.dy;
+                p.x += p.dx; p.y += p.dy;
                 if (p.x <= 0 || p.x + p.width >= window.innerWidth) p.dx *= -1;
                 if (p.y <= 0 || p.y + p.height >= window.innerHeight - 65) p.dy *= -1;
                 p.el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0)`;
             });
             animationId = requestAnimationFrame(animate);
         }
-
-        // 3. 모달 로직
-        async function openModal(id, type) {
-            try {
-                const res = await fetch(`/${type}/${id}`);
-                const data = await res.json();
-                document.getElementById('modalTitle').innerText = data.title;
-                document.getElementById('modalDate').innerText = data.date;
-                document.getElementById('modalMemo').innerText = data.memo;
-                document.getElementById('deleteForm').action = `/delete_${type}/${id}`;
-                document.getElementById('detailModal').style.display = "block";
-            } catch (e) {
-                alert("기록을 불러오는데 실패했습니다.");
-            }
-        }
-
-        function closeModal() {
-            document.getElementById('detailModal').style.display = "none";
-        }
     </script>
 </body>
 </html>
-
-
