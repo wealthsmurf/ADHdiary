@@ -65,6 +65,12 @@
             width: 100%; height: 55px; background: var(--diet-orange);
             color: white; border: none; border-radius: 12px;
             font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
+            transition: 0.3s;
+        }
+        /* 버튼 비활성화 시 스타일 */
+        .submit-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
         }
 
         /* 기록 리스트 스타일 */
@@ -121,7 +127,7 @@
     </div>
 
     <div class="form-card">
-        <form action="/save_diet" method="post" enctype="multipart/form-data">
+        <form id="dietForm" action="/save_diet" method="post" enctype="multipart/form-data">
             <div class="input-group">
                 <label>WEIGHT (kg)</label>
                 <input type="number" step="0.1" name="weight" placeholder="몸무게 입력" required>
@@ -145,7 +151,7 @@
                 <input type="text" name="meal" placeholder="오늘 무엇을 드셨나요?" style="margin-bottom:10px;" required>
                 <textarea name="memo" placeholder="다이어트 일기나 메모를 적어보세요." required></textarea>
             </div>
-            <button type="submit" class="submit-btn">기록하기</button>
+            <button type="submit" id="submitBtn" class="submit-btn">기록하기</button>
         </form>
     </div>
 
@@ -195,6 +201,13 @@
     </div>
 
     <script>
+        // [추가] 폼 제출 시 버튼 비활성화 및 텍스트 변경
+        document.getElementById('dietForm').onsubmit = function() {
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerText = "저장 중...";
+        };
+
         function openModal(element) {
             const title = element.getAttribute('data-title');
             const date = element.getAttribute('data-date');
