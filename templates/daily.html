@@ -66,6 +66,13 @@
             color: white; border: none; border-radius: 12px;
             font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
             box-shadow: 0 5px 15px rgba(91, 157, 237, 0.2);
+            transition: 0.3s;
+        }
+        /* 버튼 저장 중 스타일 */
+        .submit-btn:disabled {
+            background: var(--text-sub);
+            box-shadow: none;
+            cursor: not-allowed;
         }
 
         /* 하단 기록 목록 */
@@ -124,7 +131,7 @@
     </div>
 
     <div class="form-card">
-        <form action="/save_daily" method="post" enctype="multipart/form-data">
+        <form id="dailyForm" action="/save_daily" method="post" enctype="multipart/form-data">
             <div class="input-group">
                 <label>HOW WAS YOUR DAY?</label>
                 <input type="text" name="emoji" placeholder="오늘의 기분 (예: 😊 신나는 하루)" required>
@@ -147,7 +154,7 @@
                 <label>MEMO</label>
                 <textarea name="memo" placeholder="오늘 있었던 일을 적어보세요." required></textarea>
             </div>
-            <button type="submit" class="submit-btn">기록하기</button>
+            <button type="submit" id="submitBtn" class="submit-btn">기록하기</button>
         </form>
     </div>
 
@@ -197,7 +204,14 @@
     </div>
 
     <script>
-        // 모달 열기 함수 (data 속성 사용으로 오류 방지)
+        // [수정된 부분] 폼 제출 시 버튼 문구 변경 및 중복 클릭 방지
+        document.getElementById('dailyForm').onsubmit = function() {
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerText = "저장 중...";
+        };
+
+        // 모달 열기 함수
         function openModal(element) {
             const emoji = element.getAttribute('data-emoji');
             const date = element.getAttribute('data-date');
@@ -219,7 +233,7 @@
 
             document.getElementById('deleteForm').action = `/delete_daily/${id}`;
             document.getElementById('detailModal').style.display = 'flex';
-            document.body.style.overflow = 'hidden'; // 뒷배경 스크롤 방지
+            document.body.style.overflow = 'hidden';
         }
 
         function closeModal() {
@@ -242,7 +256,7 @@
             }
         }
 
-        // 초기 설정 (날짜 및 다크모드)
+        // 초기 설정
         document.getElementById('currentDate').value = new Date().toISOString().substring(0, 10);
         if (localStorage.getItem('darkMode') === 'true') {
             document.body.classList.add('dark-mode');
