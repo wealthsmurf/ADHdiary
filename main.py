@@ -8,7 +8,7 @@ from sqlalchemy import Column, Integer, String, Text, create_engine, desc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 
-# 1. 파일 저장 경로 설정 (static/uploads 폴더 자동 생성)
+# 1. 파일 저장 경로 설정
 UPLOAD_DIR = "static/uploads"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
@@ -19,12 +19,10 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# 3. DB 모델 정의 (image_url 컬럼 추가)
+# 3. DB 모델 정의
 class User(Base):
     __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True)
-    password = Column(String)
+    id = Column(Integer, primary_key=True, index=True); username = Column(String, unique=True, index=True); password = Column(String)
 
 class BookRecord(Base):
     __tablename__ = "book_records"
@@ -45,7 +43,6 @@ class FoodRecord(Base):
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-# 정적 파일(이미지) 서빙 설정
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
@@ -68,7 +65,7 @@ async def save_file(file: UploadFile):
         f.write(await file.read())
     return f"/static/uploads/{filename}"
 
-# 4. 로그인 및 회원가입 (아이디 중복 확인 포함)
+# 4. 로그인 및 회원가입
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, error: str = None):
     return templates.TemplateResponse("login.html", {"request": request, "error": error})
@@ -93,7 +90,7 @@ async def signup(username: str = Form(...), password: str = Form(...), db: Sessi
     db.add(User(username=username, password=password)); db.commit()
     return RedirectResponse(url="/login?error=registered", status_code=303)
 
-# 5. 메인 피드 (records 구조 유지)
+# 5. 메인 피드 (메모 데이터 추가 핵심 수정)
 @app.get("/", response_class=HTMLResponse)
 async def main_page(request: Request, db: Session = Depends(get_db), user_id=Depends(get_current_user)):
     if user_id is None: return RedirectResponse(url="/login")
@@ -104,21 +101,24 @@ async def main_page(request: Request, db: Session = Depends(get_db), user_id=Dep
     f = db.query(FoodRecord).filter(FoodRecord.owner_id == user_id).all()
     
     recs = []
-    for r in b: recs.append({"id": r.id, "type": "book", "title": f"📖 {r.title}", "date": r.date})
-    for r in d: recs.append({"id": r.id, "type": "diet", "title": f"⚖️ {r.weight}kg 기록", "date": r.date})
-    for r in dy: recs.append({"id": r.id, "type": "daily", "title": f"{r.emoji} 일상 기록", "date": r.date})
-    for r in f: recs.append({"id": r.id, "type": "food", "title": f"🍴 {r.place}", "date": r.date})
+    # HTML에서 {{ record.memo }}로 접근 가능하도록 모든 카테고리에 'memo' 필드 명시적 추가
+    for r in b: recs.append({"id": r.id, "type": "book", "title": f"📖 {r.title}", "date": r.date, "memo": r.memo})
+    for r in d: 
+        # 다이어트는 메모가 없으면 식단(meal)을 대신 보여줌
+        memo_val = r.memo if r.memo else (f"식단: {r.meal}" if r.meal else "")
+        recs.append({"id": r.id, "type": "diet", "title": f"⚖️ {r.weight}kg 기록", "date": r.date, "memo": memo_val})
+    for r in dy: recs.append({"id": r.id, "type": "daily", "title": f"{r.emoji} 일상 기록", "date": r.date, "memo": r.memo})
+    for r in f: recs.append({"id": r.id, "type": "food", "title": f"🍴 {r.place}", "date": r.date, "memo": r.memo})
     
     recs.sort(key=lambda x: x['date'] if x['date'] else "", reverse=True)
     return templates.TemplateResponse("index.html", {"request": request, "records": recs})
 
-# 6. 상세 모달 API (이미지 URL 포함)
+# 6. 상세 모달 API
 @app.get("/{type}/{record_id}")
 async def get_detail(type: str, record_id: int, db: Session = Depends(get_db), user_id=Depends(get_current_user)):
     models = {"book": BookRecord, "diet": DietRecord, "daily": DailyRecord, "food": FoodRecord}
     r = db.query(models[type]).filter(models[type].id == record_id, models[type].owner_id == user_id).first()
     if not r: raise HTTPException(status_code=404)
-    
     data = {"date": r.date, "memo": r.memo if r.memo else "", "image_url": r.image_url}
     if type == "book": data["title"] = f"📖 {r.title}"
     elif type == "diet": data["title"] = f"⚖️ {r.weight}kg 기록"
@@ -126,7 +126,7 @@ async def get_detail(type: str, record_id: int, db: Session = Depends(get_db), u
     elif type == "food": data["title"] = f"🍴 {r.place}"
     return JSONResponse(data)
 
-# 7. 저장 로직 (사진 업로드 처리 추가)
+# 7. 저장 로직
 @app.post("/save_book")
 async def save_book(title:str=Form(...), date:str=Form(...), memo:str=Form(...), image:UploadFile=File(None), uid=Depends(get_current_user), db:Session=Depends(get_db)):
     img = await save_file(image)
