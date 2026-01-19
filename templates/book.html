@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BOOK LOG - ADHDIARY</title>
     <style>
+        /* 보내주신 스타일 그대로 유지 */
         :root {
             --bg-color: #F2F2F2;
             --card-bg: #FFFFFF;
@@ -13,7 +14,6 @@
             --border-color: #EEEEEE;
             --book-green: #4CAF50;
         }
-
         body.dark-mode {
             --bg-color: #121212;
             --card-bg: #1E1E1E;
@@ -21,70 +21,54 @@
             --text-sub: #888888;
             --border-color: #333333;
         }
-
         body { 
             margin: 0; padding: 0; font-family: 'Apple SD Gothic Neo', sans-serif;
             background-color: var(--bg-color); color: var(--text-main);
             display: flex; flex-direction: column; align-items: center; min-height: 100vh;
         }
-
         .header {
             width: 100%; max-width: 400px; padding: 40px 20px 20px;
             display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;
         }
-
         .back-btn { font-size: 24px; cursor: pointer; color: var(--book-green); text-decoration: none; }
         .title { font-size: 20px; font-weight: 900; }
-
         .form-card {
             background: var(--card-bg); width: 90%; max-width: 380px;
             border-radius: 30px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
             box-sizing: border-box; margin-bottom: 30px;
         }
-
         .input-group { margin-bottom: 15px; }
         .input-group label { display: block; font-size: 11px; color: var(--text-sub); margin-bottom: 6px; font-weight: bold; }
-        
         input[type="text"], input[type="date"], textarea {
             width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border-color);
             background: var(--bg-color); color: var(--text-main); font-size: 14px;
             box-sizing: border-box; outline: none; transition: 0.3s;
         }
-
         textarea { height: 80px; resize: none; }
         input:focus, textarea:focus { border-color: var(--book-green); }
-
         .file-wrapper {
             width: 100%; height: 100px; border: 2px dashed var(--border-color);
             border-radius: 15px; display: flex; align-items: center; justify-content: center; 
             cursor: pointer; overflow: hidden; position: relative; background: var(--bg-color);
         }
         #preview { width: 100%; height: 100%; object-fit: cover; display: none; }
-
         .submit-btn {
             width: 100%; height: 50px; background: var(--book-green);
             color: white; border: none; border-radius: 12px;
             font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px;
         }
-
-        /* 저장 중 상태 스타일 */
-        .submit-btn:disabled { background: #ccc; cursor: wait; }
-
         .record-list { width: 90%; max-width: 380px; padding-bottom: 50px; }
         .record-card {
             background: var(--card-bg); padding: 15px; border-radius: 20px;
             margin-bottom: 12px; cursor: pointer; display: flex; align-items: center;
             box-shadow: 0 4px 10px rgba(0,0,0,0.02); transition: transform 0.2s;
         }
-
+        .record-card:active { transform: scale(0.98); }
         .thumb-area { width: 45px; height: 60px; border-radius: 6px; margin-right: 15px; overflow: hidden; flex-shrink: 0; }
         .thumb-area img { width: 100%; height: 100%; object-fit: cover; }
         .thumb-placeholder { width: 100%; height: 100%; background: var(--bg-color); display: flex; align-items: center; justify-content: center; font-size: 18px; }
-
         .record-info b { font-size: 15px; color: var(--text-main); display: block; }
         .record-info p { font-size: 11px; color: var(--text-sub); margin-top: 3px; }
-
-        /* 모달 스타일 */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); display: none;
@@ -99,12 +83,14 @@
         .modal-header { flex-shrink: 0; margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 15px; }
         .modal-title { font-size: 20px; font-weight: 900; color: var(--book-green); }
         .modal-date { font-size: 12px; color: var(--text-sub); margin-top: 5px; }
-        .modal-body { font-size: 15px; line-height: 1.7; color: var(--text-main); flex: 1; overflow-y: auto; white-space: pre-wrap; }
-        .modal-body img { width: 60%; display: block; margin: 0 auto 15px auto; border-radius: 10px; }
+        .modal-body { 
+            font-size: 15px; line-height: 1.7; color: var(--text-main);
+            flex: 1; overflow-y: auto; padding-right: 5px; white-space: pre-wrap;
+        }
+        .modal-body img { width: 60%; display: block; margin: 0 auto 15px auto; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         .modal-footer { flex-shrink: 0; display: flex; gap: 10px; margin-top: 20px; }
-        .btn-close, .btn-del { flex: 1; padding: 15px; border-radius: 15px; border: none; font-weight: bold; cursor: pointer; }
-        .btn-close { background: var(--border-color); color: var(--text-main); }
-        .btn-del { flex: 0.5; background: #ff8a80; color: white; }
+        .btn-close { flex: 1; padding: 15px; border-radius: 15px; border: none; background: var(--border-color); color: var(--text-main); font-weight: bold; cursor: pointer; }
+        .btn-del { flex: 0.5; background: #ff8a80; color: white; border: none; padding: 15px; border-radius: 15px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -116,7 +102,7 @@
     </div>
 
     <div class="form-card">
-        <form id="saveForm" action="/save_book" method="post" enctype="multipart/form-data">
+        <form id="bookForm" action="/save_book" method="post" enctype="multipart/form-data">
             <div class="input-group">
                 <label>BOOK TITLE</label>
                 <input type="text" name="title" placeholder="책 제목을 입력하세요" required>
@@ -129,19 +115,22 @@
                 <label>BOOK COVER (PHOTO)</label>
                 <div class="file-wrapper" onclick="document.getElementById('image').click()">
                     <img id="preview" src="#">
-                    <div id="file-msg">📸 표지 추가</div>
+                    <div id="file-msg" style="text-align: center; color: var(--text-sub); font-size: 12px;">
+                        📸 표지 추가
+                    </div>
                     <input type="file" id="image" name="image" accept="image/*" style="display:none;" onchange="previewImage(this)">
                 </div>
             </div>
             <div class="input-group">
                 <label>MEMO / REVIEW</label>
-                <textarea name="memo" placeholder="감상을 적어주세요." required></textarea>
+                <textarea name="memo" placeholder="인상 깊었던 구절이나 감상을 적어주세요." required></textarea>
             </div>
-            <button type="submit" class="submit-btn" id="submitBtn">저장하기</button>
+            <button type="submit" class="submit-btn" id="submitBtn">기록하기</button>
         </form>
     </div>
 
     <div class="record-list">
+        <h3 style="font-size: 11px; color: var(--text-sub); letter-spacing: 1px; margin-bottom: 15px;">MY READING LOGS</h3>
         {% for record in my_records %}
         <div class="record-card" onclick="openModal(this)"
              data-title="{{ record.title }}" data-date="{{ record.date }}" data-id="{{ record.id }}"
@@ -170,88 +159,79 @@
             <div class="modal-footer">
                 <button class="btn-close" onclick="closeModal()">닫기</button>
                 <form id="deleteForm" method="post" style="flex: 0.5;">
-                    <button type="submit" class="btn-del" onclick="return confirm('삭제할까요?')">삭제</button>
+                    <button type="submit" class="btn-del" onclick="return confirm('이 기록을 삭제할까요?')">삭제</button>
                 </form>
             </div>
         </div>
     </div>
 
     <script>
-        // [핵심] 저장 속도를 10배 빠르게 만드는 이미지 압축 함수
-        async function compressImage(file) {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.src = e.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const MAX_SIZE = 600; // 모바일 최적화 크기
-                        let width = img.width;
-                        let height = img.height;
-                        if (width > height) {
-                            if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
-                        } else {
-                            if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
-                        }
-                        canvas.width = width; canvas.height = height;
-                        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-                        canvas.toBlob((blob) => {
-                            resolve(new File([blob], "upload.jpg", { type: 'image/jpeg' }));
-                        }, 'image/jpeg', 0.6); // 품질 0.6으로 용량 획기적 감소
-                    };
-                };
-            });
+        // 1. 저장 버튼 클릭 시 작동할 초간단 압축 로직
+        document.getElementById('bookForm').onsubmit = async function(e) {
+            const fileInput = document.getElementById('image');
+            const btn = document.getElementById('submitBtn');
+            
+            // 사진이 없으면 그냥 즉시 제출
+            if (!fileInput.files || fileInput.files.length === 0) return true;
+
+            e.preventDefault(); // 잠시 멈추고 압축 시작
+            btn.disabled = true;
+            btn.innerText = "압축 중...";
+
+            const file = fileInput.files[0];
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // 크기를 가로 500px 정도로 줄임 (속도 핵심)
+                const scale = 500 / img.width;
+                canvas.width = 500;
+                canvas.height = img.height * scale;
+                
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                canvas.toBlob((blob) => {
+                    const compressedFile = new File([blob], "img.jpg", { type: "image/jpeg" });
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(compressedFile);
+                    fileInput.files = dataTransfer.files; // 압축된 파일로 교체
+                    
+                    btn.innerText = "저장 중...";
+                    document.getElementById('bookForm').submit(); // 진짜 제출
+                }, "image/jpeg", 0.7); // 품질 70% (용량 대폭 감소)
+            };
+        };
+
+        // 기존 기능들 (모달, 미리보기 등) 유지
+        function openModal(element) {
+            document.getElementById('mTitle').innerText = element.getAttribute('data-title');
+            document.getElementById('mDate').innerText = element.getAttribute('data-date');
+            document.getElementById('mMemo').innerText = element.getAttribute('data-memo');
+            const imgContainer = document.getElementById('mImageContainer');
+            imgContainer.innerHTML = ''; 
+            const imageUrl = element.getAttribute('data-image');
+            if (imageUrl) {
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                imgContainer.appendChild(img);
+            }
+            document.getElementById('deleteForm').action = `/delete_book/${element.getAttribute('data-id')}`;
+            document.getElementById('detailModal').style.display = 'flex';
         }
 
-        // 폼 제출 시 즉시 압축 후 전송
-        document.getElementById('saveForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('submitBtn');
-            const fileInput = document.getElementById('image');
-            
-            btn.disabled = true;
-            btn.innerText = '전송 중...';
-
-            if (fileInput.files.length > 0) {
-                const compressed = await compressImage(fileInput.files[0]);
-                const dt = new DataTransfer();
-                dt.items.add(compressed);
-                fileInput.files = dt.files;
-            }
-
-            this.submit(); // 압축 완료 후 바로 제출
-        });
+        function closeModal() { document.getElementById('detailModal').style.display = 'none'; document.body.style.overflow = 'auto'; }
 
         function previewImage(input) {
             const preview = document.getElementById('preview');
             const msg = document.getElementById('file-msg');
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = e => {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                    msg.style.display = 'none';
-                }
+                reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; msg.style.display = 'none'; }
                 reader.readAsDataURL(input.files[0]);
             }
-        }
-
-        function openModal(element) {
-            document.getElementById('mTitle').innerText = element.dataset.title;
-            document.getElementById('mDate').innerText = element.dataset.date;
-            document.getElementById('mMemo').innerText = element.dataset.memo;
-            const imgContainer = document.getElementById('mImageContainer');
-            imgContainer.innerHTML = element.dataset.image ? `<img src="${element.dataset.image}">` : '';
-            document.getElementById('deleteForm').action = `/delete_book/${element.dataset.id}`;
-            document.getElementById('detailModal').style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeModal() {
-            document.getElementById('detailModal').style.display = 'none';
-            document.body.style.overflow = 'auto';
         }
 
         document.getElementById('currentDate').value = new Date().toISOString().substring(0, 10);
