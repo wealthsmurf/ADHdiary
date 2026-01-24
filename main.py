@@ -185,8 +185,9 @@ async def privacy_policy():
             
             <h2>5. 문의처</h2>
             <p>개인정보 관련 문의사항은 개발자 메일로 연락 부탁드립니다.</p>
-            <p>이메일: [본인의 이메일 주소를 입력하세요]</p>
+            <p>이메일: [wealthsmurf1@gmail.com]</p>
             <p>시행일자: 2026년 1월 23일</p>
         </body>
     </html>
     """
+
